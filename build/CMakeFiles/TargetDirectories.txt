@@ -1,5 +1,4 @@
 /home/bian/code/C/git/piPlayerShell/build/CMakeFiles/rebuild_cache.dir
-/home/bian/code/C/git/piPlayerShell/build/CMakeFiles/Player.dir
 /home/bian/code/C/git/piPlayerShell/build/CMakeFiles/edit_cache.dir
 /home/bian/code/C/git/piPlayerShell/build/bin/CMakeFiles/rebuild_cache.dir
 /home/bian/code/C/git/piPlayerShell/build/bin/CMakeFiles/piPlayer.dir

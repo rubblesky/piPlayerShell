@@ -1,5 +1,5 @@
 #include"piPlayer.h"
-//#include"terminal.h"
+#include"terminal.h"
 
 #include <unistd.h>
 #include<stdio.h>

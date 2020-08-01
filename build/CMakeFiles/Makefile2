@@ -65,43 +65,6 @@ CMAKE_SOURCE_DIR = /home/bian/code/C/git/piPlayerShell
 CMAKE_BINARY_DIR = /home/bian/code/C/git/piPlayerShell/build
 
 #=============================================================================
-# Target rules for target CMakeFiles/Player.dir
-
-# All Build rule for target.
-CMakeFiles/Player.dir/all:
-	$(MAKE) -f CMakeFiles/Player.dir/build.make CMakeFiles/Player.dir/depend
-	$(MAKE) -f CMakeFiles/Player.dir/build.make CMakeFiles/Player.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/bian/code/C/git/piPlayerShell/build/CMakeFiles --progress-num=1,2,3 "Built target Player"
-.PHONY : CMakeFiles/Player.dir/all
-
-# Include target in all.
-all: CMakeFiles/Player.dir/all
-
-.PHONY : all
-
-# Build rule for subdir invocation for target.
-CMakeFiles/Player.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/bian/code/C/git/piPlayerShell/build/CMakeFiles 3
-	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/Player.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/bian/code/C/git/piPlayerShell/build/CMakeFiles 0
-.PHONY : CMakeFiles/Player.dir/rule
-
-# Convenience name for target.
-Player: CMakeFiles/Player.dir/rule
-
-.PHONY : Player
-
-# clean rule for target.
-CMakeFiles/Player.dir/clean:
-	$(MAKE) -f CMakeFiles/Player.dir/build.make CMakeFiles/Player.dir/clean
-.PHONY : CMakeFiles/Player.dir/clean
-
-# clean rule for target.
-clean: CMakeFiles/Player.dir/clean
-
-.PHONY : clean
-
-#=============================================================================
 # Directory level rules for directory bin
 
 # Convenience name for "all" pass in the directory.
@@ -126,7 +89,7 @@ bin/preinstall:
 bin/CMakeFiles/piPlayer.dir/all: lib/CMakeFiles/terminal.dir/all
 	$(MAKE) -f bin/CMakeFiles/piPlayer.dir/build.make bin/CMakeFiles/piPlayer.dir/depend
 	$(MAKE) -f bin/CMakeFiles/piPlayer.dir/build.make bin/CMakeFiles/piPlayer.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/bian/code/C/git/piPlayerShell/build/CMakeFiles --progress-num=4,5 "Built target piPlayer"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/bian/code/C/git/piPlayerShell/build/CMakeFiles --progress-num=1,2 "Built target piPlayer"
 .PHONY : bin/CMakeFiles/piPlayer.dir/all
 
 # Include target in all.
@@ -181,7 +144,7 @@ lib/preinstall:
 lib/CMakeFiles/terminal.dir/all:
 	$(MAKE) -f lib/CMakeFiles/terminal.dir/build.make lib/CMakeFiles/terminal.dir/depend
 	$(MAKE) -f lib/CMakeFiles/terminal.dir/build.make lib/CMakeFiles/terminal.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/bian/code/C/git/piPlayerShell/build/CMakeFiles --progress-num=6,7 "Built target terminal"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/bian/code/C/git/piPlayerShell/build/CMakeFiles --progress-num=3,4 "Built target terminal"
 .PHONY : lib/CMakeFiles/terminal.dir/all
 
 # Include target in all.

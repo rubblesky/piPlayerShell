@@ -1,5 +1,5 @@
+cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 project(PIPLAYER LANGUAGES C)
-cmake_minimum_required(VERSION 3.13)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message(STATUS "Configuring on/for Linux")
@@ -17,7 +17,7 @@ endif()
 message(STATUS "This is BINARY dir " ${PROJECT_BINARY_DIR})
 message(STATUS "This is SOURCE dir " ${PROJECT_SOURCE_DIR})
 
-add_library(Player "")
+
 
 add_subdirectory(src bin)
 add_subdirectory(lib)

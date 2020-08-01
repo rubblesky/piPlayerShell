@@ -182,6 +182,12 @@ PIPLAYER_BINARY_DIR:STATIC=/home/bian/code/C/git/piPlayerShell/build
 //Value Computed by CMake
 PIPLAYER_SOURCE_DIR:STATIC=/home/bian/code/C/git/piPlayerShell
 
+//Value Computed by CMake
+terminal_BINARY_DIR:STATIC=/home/bian/code/C/git/piPlayerShell/build/lib
+
+//Value Computed by CMake
+terminal_SOURCE_DIR:STATIC=/home/bian/code/C/git/piPlayerShell/lib
+
 
 ########################
 # INTERNAL cache entries

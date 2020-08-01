@@ -79,7 +79,7 @@ piPlayer_EXTERNAL_OBJECTS =
 
 bin/piPlayer: bin/CMakeFiles/piPlayer.dir/piPlayer.c.o
 bin/piPlayer: bin/CMakeFiles/piPlayer.dir/build.make
-bin/piPlayer: lib/libterminal.a
+bin/piPlayer: lib/libterminal.so
 bin/piPlayer: bin/CMakeFiles/piPlayer.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/bian/code/C/git/piPlayerShell/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking C executable piPlayer"
 	cd /home/bian/code/C/git/piPlayerShell/build/bin && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/piPlayer.dir/link.txt --verbose=$(VERBOSE)

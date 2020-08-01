@@ -1,2 +1,1 @@
-/usr/bin/ar qc libterminal.a  CMakeFiles/terminal.dir/terminal.c.o
-/usr/bin/ranlib libterminal.a
+/usr/bin/x86_64-linux-gnu-gcc-8 -fPIC -g  -shared -Wl,-soname,libterminal.so -o libterminal.so CMakeFiles/terminal.dir/terminal.c.o 

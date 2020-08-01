@@ -111,19 +111,6 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named Player
-
-# Build rule for target.
-Player: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 Player
-.PHONY : Player
-
-# fast build rule for target.
-Player/fast:
-	$(MAKE) -f CMakeFiles/Player.dir/build.make CMakeFiles/Player.dir/build
-.PHONY : Player/fast
-
-#=============================================================================
 # Target rules for targets named piPlayer
 
 # Build rule for target.
@@ -149,60 +136,6 @@ terminal/fast:
 	$(MAKE) -f lib/CMakeFiles/terminal.dir/build.make lib/CMakeFiles/terminal.dir/build
 .PHONY : terminal/fast
 
-lib/terminal.o: lib/terminal.c.o
-
-.PHONY : lib/terminal.o
-
-# target to build an object file
-lib/terminal.c.o:
-	$(MAKE) -f CMakeFiles/Player.dir/build.make CMakeFiles/Player.dir/lib/terminal.c.o
-.PHONY : lib/terminal.c.o
-
-lib/terminal.i: lib/terminal.c.i
-
-.PHONY : lib/terminal.i
-
-# target to preprocess a source file
-lib/terminal.c.i:
-	$(MAKE) -f CMakeFiles/Player.dir/build.make CMakeFiles/Player.dir/lib/terminal.c.i
-.PHONY : lib/terminal.c.i
-
-lib/terminal.s: lib/terminal.c.s
-
-.PHONY : lib/terminal.s
-
-# target to generate assembly for a file
-lib/terminal.c.s:
-	$(MAKE) -f CMakeFiles/Player.dir/build.make CMakeFiles/Player.dir/lib/terminal.c.s
-.PHONY : lib/terminal.c.s
-
-src/piPlayer.o: src/piPlayer.c.o
-
-.PHONY : src/piPlayer.o
-
-# target to build an object file
-src/piPlayer.c.o:
-	$(MAKE) -f CMakeFiles/Player.dir/build.make CMakeFiles/Player.dir/src/piPlayer.c.o
-.PHONY : src/piPlayer.c.o
-
-src/piPlayer.i: src/piPlayer.c.i
-
-.PHONY : src/piPlayer.i
-
-# target to preprocess a source file
-src/piPlayer.c.i:
-	$(MAKE) -f CMakeFiles/Player.dir/build.make CMakeFiles/Player.dir/src/piPlayer.c.i
-.PHONY : src/piPlayer.c.i
-
-src/piPlayer.s: src/piPlayer.c.s
-
-.PHONY : src/piPlayer.s
-
-# target to generate assembly for a file
-src/piPlayer.c.s:
-	$(MAKE) -f CMakeFiles/Player.dir/build.make CMakeFiles/Player.dir/src/piPlayer.c.s
-.PHONY : src/piPlayer.c.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -210,16 +143,9 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... Player"
 	@echo "... edit_cache"
 	@echo "... piPlayer"
 	@echo "... terminal"
-	@echo "... lib/terminal.o"
-	@echo "... lib/terminal.i"
-	@echo "... lib/terminal.s"
-	@echo "... src/piPlayer.o"
-	@echo "... src/piPlayer.i"
-	@echo "... src/piPlayer.s"
 .PHONY : help
 
 

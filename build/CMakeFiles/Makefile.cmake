@@ -43,7 +43,6 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
-  "CMakeFiles/Player.dir/DependInfo.cmake"
   "bin/CMakeFiles/piPlayer.dir/DependInfo.cmake"
   "lib/CMakeFiles/terminal.dir/DependInfo.cmake"
   )

@@ -6,5 +6,5 @@ C_FLAGS = -g
 
 C_DEFINES = 
 
-C_INCLUDES = -I/home/bian/code/C/git/piPlayerShell/lib 
+C_INCLUDES = 
 

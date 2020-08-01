@@ -1,7 +1,8 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/terminal.dir/terminal.c.o"
+  "CMakeFiles/terminal.dir/src/piPlayer.c.o"
+  "CMakeFiles/terminal.dir/lib/terminal.c.o"
   "libterminal.pdb"
-  "libterminal.so"
+  "libterminal.a"
 )
 
 # Per-language clean rules from dependency scanning.

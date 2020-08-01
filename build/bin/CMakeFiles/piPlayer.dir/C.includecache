@@ -6,9 +6,13 @@
 
 #IncludeRegexTransform: 
 
+../lib/terminal.h
+
 /home/bian/code/C/git/piPlayerShell/src/piPlayer.c
 piPlayer.h
 /home/bian/code/C/git/piPlayerShell/src/piPlayer.h
+terminal.h
+/home/bian/code/C/git/piPlayerShell/src/terminal.h
 unistd.h
 -
 stdio.h
