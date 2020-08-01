@@ -1,0 +1,28 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/bian/code/C/git/piPlayerShell/lib/terminal.c
+
+/home/bian/code/C/git/piPlayerShell/src/piPlayer.c
+piPlayer.h
+/home/bian/code/C/git/piPlayerShell/src/piPlayer.h
+unistd.h
+-
+stdio.h
+-
+getopt.h
+-
+dirent.h
+-
+stdbool.h
+-
+
+/home/bian/code/C/git/piPlayerShell/src/piPlayer.h
+stdbool.h
+-
+
