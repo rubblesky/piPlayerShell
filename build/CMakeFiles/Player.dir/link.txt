@@ -1,2 +1,0 @@
-/usr/bin/ar qc libPlayer.a  CMakeFiles/Player.dir/src/piPlayer.c.o CMakeFiles/Player.dir/lib/terminal.c.o
-/usr/bin/ranlib libPlayer.a

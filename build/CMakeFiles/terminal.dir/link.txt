@@ -1,2 +1,0 @@
-/usr/bin/ar qc libterminal.a  CMakeFiles/terminal.dir/src/piPlayer.c.o CMakeFiles/terminal.dir/lib/terminal.c.o
-/usr/bin/ranlib libterminal.a
