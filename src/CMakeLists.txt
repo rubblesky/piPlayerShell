@@ -8,3 +8,4 @@ piPlayer
     ${SRC_LIST}
 )
 target_link_libraries(piPlayer PUBLIC terminal)
+target_link_libraries(piPlayer PUBLIC sort)
