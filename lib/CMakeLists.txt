@@ -1,4 +1,4 @@
-#project(terminal LANGUAGES C)
+
 add_library(terminal SHARED)
 target_sources(
 terminal
@@ -13,6 +13,20 @@ set_target_properties(terminal
             ${CMAKE_CURRENT_SOURCE_DIR}/terminal.h
 )
 target_include_directories(terminal PUBLIC ${CMAKE_CURRENT_LIST_DIR})
-#set(TERMINAL_SRC "terminal.c")
-#ADD_LIBRARY(terminal STATIC ${TERMINAL_SRC})
-#target_link_libraries(piPlayer terminal)
+
+
+
+add_library(sort SHARED)
+target_sources(sort
+    PRIVATE 
+        sort.c
+    PUBLIC
+        sort.h
+
+)
+set_target_properties(sort
+    PROPERTIES
+        PUBLIC_HEADER
+            ${CMAKE_CURRENT_SOURCE_DIR}/sort.h    
+)        
+target_include_directories(sort PUBLIC ${CMAKE_CURRENT_LIST_DIR})
