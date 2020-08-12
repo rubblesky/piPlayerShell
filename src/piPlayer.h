@@ -27,7 +27,7 @@ enum file_type
 
 struct file_info{
     char * name;
-    struct stat *stat;
+    struct stat stat;
     enum file_type file_type;
     //time_t mtime;
 };

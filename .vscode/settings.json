@@ -3,7 +3,9 @@
     "editor.formatOnType": true, // （对于C/C++）输入分号后自动格式化当前这一行的代码
     "editor.suggest.snippetsPreventQuickSuggestions": false, // clangd的snippets有很多的跳转点，不用这个就必须手动触发Intellisense了
     "editor.acceptSuggestionOnEnter": "off", // 我个人的习惯，按回车时一定是真正的换行，只有tab才会接受Intellisense
-    "C_Cpp.clang_format_sortIncludes": true,
+    "C_Cpp.clang_format_sortIncludes": true,// 格式化时调整include的顺序（按字母排序）
+    "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4, ColumnLimit: 0}"
+/*
     "files.associations": {
         "stdio.h": "c",
         "cstdio": "c",
@@ -25,5 +27,7 @@
         "*.def": "cpp",
         "system_error": "cpp"
     },
-    "cmake.configureOnOpen": true, // 格式化时调整include的顺序（按字母排序）
+    "cmake.configureOnOpen": true, 
+
+*/
 }

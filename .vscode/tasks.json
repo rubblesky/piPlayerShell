@@ -3,23 +3,52 @@
     // for the documentation about the tasks.json format
     "version": "2.0.0",
     "tasks": [
-        {   
-            "label": "gcc build active file",
+        {   //任务1：执行cmake指令
+            "label": "cmake",
             "type": "shell",
-            "command": "/usr/bin/gcc",
-            "args":["-g", "${file}", "-o", "${fileDirname}/${fileBasenameNoExtension}"],
+            "command": "/usr/bin/cmake",
+            "args": [
+                "${workspaceFolder}/build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {   //任务2：执行make指令
+            "label": "compile",
+            "command": "/usr/bin/make",
+            "type": "shell",
+            "args": [
+                "-s",
+                //"--no-print-directory",
+                "-C",
+                "${workspaceFolder}/build"
+            ],
             "options": {
                 "cwd": "/usr/bin"
             },
-            //"problemMatcher": "$gcc",
-            // {
-            //    "base": "$gcc",
-            //    "fileLocation": ["absolute"]
-            //},
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {   //任务3：默认任务，可以通过Ctrl + Shift + B执行，会依次执行任务1和任务2
+            "label": "Build",
+            "dependsOrder":"sequence",
+            "dependsOn": [
+                "cmake",
+                "compile"
+            ],
             "group": {
                 "kind": "build",
                 "isDefault": true
-              }
+            },
+            "problemMatcher": {
+                "base": "$gcc",
+                "fileLocation": ["relative", "${workspaceFolder}/build"]
+            }
         }
     ]
 }
