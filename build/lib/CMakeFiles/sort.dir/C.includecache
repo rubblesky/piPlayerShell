@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/bian/code/C/git/piPlayerShell/lib/sort.c
+sort.h
+/home/bian/code/C/git/piPlayerShell/lib/sort.h
+stdlib.h
+-
+
+/home/bian/code/C/git/piPlayerShell/lib/sort.h
+
