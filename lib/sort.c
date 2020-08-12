@@ -8,7 +8,7 @@ static int partition(void* array, int p, int r,
 void quick_sort(void* array, int p, int r, void (*compare)(void*, int, int),
                 void (*exchange)(void*, int, int)) {
     if (p < r) {
-        int q = partition(array, p, r, compare, exchange);
+        int q = partition(array, p, r, (int (*)(void*, int, int) )compare, exchange);
         quick_sort(array, p, q - 1, compare, exchange);
         quick_sort(array, q + 1, r, compare, exchange);
     }
