@@ -1,10 +1,14 @@
 #ifndef PIPLARYER_H
 #define PIPLARYER_H
 
+#include "config.h"
+
 #include<stdbool.h>
 #include<dirent.h>
 #include<time.h>
 #include<sys/stat.h>
+
+
 
 
 typedef long int music_t;
@@ -50,7 +54,9 @@ struct play_list_info
 
     /*文件名数组的分配大小*/
     music_t file_alloc_num;
-    /*文件名数组有效数据大小*/
+    /*文件名数组有效数据大小
+    相应下标应该-1
+    */
     music_t file_used_num;
     
     /*当前选择的音乐*/

@@ -1,3 +1,4 @@
+
 #include "piPlayer.h"
 
 #include <assert.h>
@@ -63,6 +64,10 @@ static struct option long_opt[] =
         {0, 0, 0, 0}};
 
 int main(int argc, char *argv[]) {
+    /*初始化默认值*/
+    play_list.sort_rule = by_name;
+
+    /*读取参数*/
     int opt;
     while ((opt = getopt_long(argc, argv, short_opts, long_opt, NULL)) != -1) {
         switch (opt) {
@@ -101,6 +106,18 @@ int print_interface() {
         return -1;
     }
     sort_file();
+
+#ifndef NDEBUG
+    /*打印排序结果*/
+    if (play_list.sort_rule == by_last_modification_time)
+        for (int i = 0; i < play_list.file_used_num; i++) {
+            printf("%d: %25s  time: %d\n", i + 1, play_list.sorted_file[i]->name, play_list.sorted_file[i]->stat.st_mtime);
+        }
+    else if(play_list.sort_rule == by_name)
+        for (int i = 0; i < play_list.file_used_num;i++){
+            printf("%d: %s \n", i + 1, play_list.sorted_file[i]->name);
+        }
+#endif
     play_list.current_music = 0;
 }
 
@@ -228,10 +245,10 @@ static int add_file(char *file_name) {
 static void sort_file() {
     switch (play_list.sort_rule) {
         case by_name:
-            quick_sort(play_list.sorted_file, 0, play_list.file_used_num, (void (*)(void *, int, int))compare_by_filename, (void (*)(void *, int, int))exchange_file);
+            quick_sort(play_list.sorted_file, 0, play_list.file_used_num - 1, (void (*)(void *, int, int))compare_by_filename, (void (*)(void *, int, int))exchange_file);
             break;
         case by_last_modification_time:
-            quick_sort(play_list.sorted_file, 0, play_list.file_used_num, (void (*)(void *, int, int))compare_by_modification, (void (*)(void *, int, int))exchange_file);
+            quick_sort(play_list.sorted_file, 0, play_list.file_used_num - 1, (void (*)(void *, int, int))compare_by_modification, (void (*)(void *, int, int))exchange_file);
             break;
         default:
             break;
@@ -246,11 +263,41 @@ void exchange_file(struct file_info **file, int pos1, int pos2) {
 }
 
 int compare_by_filename(struct file_info **file, int pos1, int pos2) {
+    char *n1 = file[pos1]->name;
+    char *n2 = file[pos2]->name;
+    int i = 0;
+    while (n1[i] != '\0' && n2[i] != '\0') {
+        if (n1[i] > n2[i]) {
+            return 1;
+        } else if (n1[i] < n2[i]) {
+            return -1;
+        }
+        i++;
+    }
+    /*如果两个文件名前部分相同，较短的比较小，排在前面*/
+    if (n1[i] == '\0' && n2[i] == '\0') {
+        return 0;
+    } else if (n1[i] != '\0') {
+        return 1;
+    } else {
+        return -1;
+    }
 }
 
 int compare_by_modification(struct file_info **file, int pos1, int pos2) {
     struct file_info *f1 = file[pos1];
     struct file_info *f2 = file[pos2];
+    /*这里要再改回去试试*/
+#ifdef _GNU_SOURCE
+    if (f1->stat.st_mtim.tv_sec > f2->stat.st_mtim.tv_sec) {
+        return 1;
+    } else if (f1->stat.st_mtim.tv_sec == f2->stat.st_mtim.tv_sec) {
+        return 0;
+    } else {
+        return -1;
+    }
+
+#else
     if (f1->stat.st_mtime > f2->stat.st_mtime) {
         return 1;
     } else if (f1->stat.st_mtime == f2->stat.st_mtime) {
@@ -258,6 +305,7 @@ int compare_by_modification(struct file_info **file, int pos1, int pos2) {
     } else {
         return -1;
     }
+#endif
 }
 
 static char *init_directory_name(char *directory) {
