@@ -8,8 +8,9 @@
 #include<time.h>
 #include<sys/stat.h>
 
-
-
+#define PATHMAX 256
+/*路径分隔符*/
+#define PATH_SEPARATOR '/'
 
 typedef long int music_t;
 
@@ -63,4 +64,7 @@ struct play_list_info
     music_t current_music;
 };
 
+
+
+extern struct play_list_info play_list;
 #endif
