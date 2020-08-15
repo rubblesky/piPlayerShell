@@ -12,6 +12,14 @@
 /*路径分隔符*/
 #define PATH_SEPARATOR '/'
 
+char *directory_name;
+
+/*指定目录*/
+extern bool is_specify_directory;
+/*使用收藏目录*/
+extern bool use_star_dir;
+/*显示隐藏文件*/
+extern bool show_hidden_files;
 typedef long int music_t;
 
 

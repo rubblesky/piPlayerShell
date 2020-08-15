@@ -10,10 +10,10 @@
 #include <unistd.h>
 
 #include "sort.h"
-
+#include "err.h"
 
 /*获取目录下文件信息*/
-int get_file_info(char *directory_name);
+static int get_file_info(char *directory_name);
 /*向文件列表中添加读取到的文件*/
 static int add_file(char *file_name);
 /*文件排序*/
@@ -27,9 +27,14 @@ int compare_by_modification(struct file_info **file, int pos1, int pos2);
 /*初始化目录*/
 static char *init_directory_name(char *directory);
 
+int read_dir(char *directory_name){
+    if(get_file_info(directory_name)<0){
+        return -1;
+    }
+    sort_file();
+}
 
-
-static int get_file_info(char *directory_name) {
+    static int get_file_info(char *directory_name) {
 #ifndef NDEBUG
     printf("now  get_file_info\n");
 #endif
@@ -178,25 +183,28 @@ int compare_by_filename(struct file_info **file, int pos1, int pos2) {
 }
 
 int compare_by_modification(struct file_info **file, int pos1, int pos2) {
+    /*
+    让修改时间晚的在前面
+    大数在前
+    */
     struct file_info *f1 = file[pos1];
     struct file_info *f2 = file[pos2];
-    /*这里要再改回去试试*/
 #ifdef _GNU_SOURCE
     if (f1->stat.st_mtim.tv_sec > f2->stat.st_mtim.tv_sec) {
-        return 1;
+        return -1;
     } else if (f1->stat.st_mtim.tv_sec == f2->stat.st_mtim.tv_sec) {
         return 0;
     } else {
-        return -1;
+        return 1;
     }
 
 #else
     if (f1->stat.st_mtime > f2->stat.st_mtime) {
-        return 1;
+        return -1;
     } else if (f1->stat.st_mtime == f2->stat.st_mtime) {
         return 0;
     } else {
-        return -1;
+        return 1;
     }
 #endif
 }

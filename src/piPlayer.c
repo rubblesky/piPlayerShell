@@ -11,7 +11,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "dir.c"
+#include "dir.h"
 #include "sort.h"
 #include "terminal.h"
 #include "err.h"
@@ -23,13 +23,13 @@
 struct play_list_info play_list;
 
 /*程序运行目录名*/
-static char *directory_name = "./";
+char *directory_name = "./";
 /*指定目录*/
-static bool is_specify_directory = 0;
+bool is_specify_directory = 0;
 /*使用收藏目录*/
-static bool use_star_dir = 0;
+bool use_star_dir = 0;
 /*显示隐藏文件*/
-static bool show_hidden_files = 0;
+bool show_hidden_files = 0;
 
 /*绘制界面*/
 static int print_interface();
@@ -86,10 +86,10 @@ int print_interface() {
 
     play_list.file_alloc_num = 100;
     play_list.file_used_num = 0;
-    if (get_file_info(directory_name) < 0) {
+    if (read_dir(directory_name) < 0) {
         return -1;
     }
-    sort_file();
+
 
 #ifndef NDEBUG
     /*打印排序结果*/
