@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <sys/wait.h>
 
 #include "dir.h"
 #include "err.h"
@@ -163,16 +164,19 @@ static void *get_cmd(void *arg) {
                     play_list.current_music--;
                 break;
             case 'd':
-                if(play_list.current_music < play_list.file_used_num)
-                play_list.current_music++;
+                if(play_list.current_music < play_list.file_used_num-1)
+                    play_list.current_music++;
                 break;
             case 'b':
                 last_song = play(last_song);
-                #ifndef DEBUG
-                printf("playing\n");
+#ifndef DEBUG
+                printf("playing %d\n", play_list.current_music+1);
 #endif
                 break;
             case 'q':
+                if (last_song != 0) {
+                    kill(last_song, SIGINT);
+                }
                 tcsetattr(fileno(stdin), TCSADRAIN, &old_tty_attr);
                 printf("Exit...\n");
                 exit(0);
@@ -186,6 +190,8 @@ static int play(pid_t last_song) {
     if(last_song != 0){
         kill(last_song, SIGINT);
     }
+    int statloc;
+    printf("wait :  %d\n",last_song==wait(&statloc));
     pid_t pid;
     if ((pid = fork()) < 0) {
         printf("play error\n");
