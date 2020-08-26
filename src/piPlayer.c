@@ -186,13 +186,18 @@ static int play() {
     if ((pid = fork()) < 0) {
         printf("play error\n");
         return -1;
-    } else if (pid == 0) {
+    } else if (pid != 0) {
+        /*父进程*/
         return 0;
 
     } else {
+        /*子进程*/
         FILE* fout = freopen("/dev/null","w",stdout);
         FILE *ferr = freopen("/dev/null", "w", stderr);
         
+        if(fout == NULL || ferr ==NULL){
+            file_error("reopen error");
+        }
         if (execlp("mplayer", "mplayer", play_list.sorted_file[play_list.current_music]->name, NULL) < 0) {
             player_error("mplayer");
             return -1;
