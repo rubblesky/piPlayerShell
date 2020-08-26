@@ -8,9 +8,14 @@ piPlayer
     PRIVATE
     ${SRC_LIST}
 )
+
+#添加线程库
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+target_link_libraries(piPlayer PRIVATE Threads::Threads)
+
 target_link_libraries(
 piPlayer 
     PUBLIC 
     ${LIB_LIST}
 )
-#target_link_libraries(piPlayer PUBLIC err dir)
