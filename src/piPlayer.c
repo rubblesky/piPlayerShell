@@ -13,6 +13,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #include "dir.h"
 #include "err.h"
@@ -36,7 +37,7 @@ static int print_interface();
 /*读取键盘命令*/
 static void *get_cmd(void *arg);
 /*播放音乐*/
-static int play();
+static int play(pid_t last_song);
 /*获取当前音乐目录*/
 char *get_current_dir();
 
@@ -154,7 +155,7 @@ static void *get_cmd(void *arg) {
 #endif
         exit(-1);
     }
-    char play_cmd[128] = "mplayer ";
+    pid_t last_song = 0;
     while ((c = fgetc(stdin)) != EOF) {
         switch (c) {
             case 'u':
@@ -166,7 +167,7 @@ static void *get_cmd(void *arg) {
                 play_list.current_music++;
                 break;
             case 'b':
-                play();
+                last_song = play(last_song);
                 #ifndef DEBUG
                 printf("playing\n");
 #endif
@@ -181,17 +182,21 @@ static void *get_cmd(void *arg) {
     }
 }
 
-static int play() {
+static int play(pid_t last_song) {
+    if(last_song != 0){
+        kill(last_song, SIGINT);
+    }
     pid_t pid;
     if ((pid = fork()) < 0) {
         printf("play error\n");
         return -1;
     } else if (pid != 0) {
         /*父进程*/
-        return 0;
+        return pid;
 
     } else {
         /*子进程*/
+        /*重定向输出流 使之不显示*/
         FILE* fout = freopen("/dev/null","w",stdout);
         FILE *ferr = freopen("/dev/null", "w", stderr);
         
