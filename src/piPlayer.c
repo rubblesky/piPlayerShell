@@ -23,8 +23,6 @@
 /*播放列表*/
 struct play_list_info play_list;
 
-/*程序运行目录名*/
-char *directory_name = "./";
 /*指定目录*/
 bool is_specify_directory = 0;
 /*使用收藏目录*/
@@ -38,6 +36,8 @@ static int print_interface();
 static void *get_cmd(void *arg);
 /*播放音乐*/
 static int play();
+/*获取当前音乐目录*/
+char *get_current_dir();
 
 /*打印目录*/
 static void print_dir();
@@ -54,7 +54,7 @@ static struct option long_opt[] =
 int main(int argc, char *argv[]) {
     /*初始化默认值*/
     play_list.sort_rule = by_name;
-
+    play_list.music_dir = get_current_dir();
     /*读取参数*/
     int opt;
     while ((opt = getopt_long(argc, argv, short_opts, long_opt, NULL)) != -1) {
@@ -63,12 +63,18 @@ int main(int argc, char *argv[]) {
                 break;
             case 'd':
                 is_specify_directory = 1;
-                directory_name = init_directory_name(optarg);
+                //play_list.music_dir = init_directory_name(optarg);
 
 #ifndef NDEBUG
-                printf("now dirctory is %s\n", directory_name);
+                printf("now pwd is %s\n", getenv("PWD"));
 #endif
 
+                if(chdir(optarg) < 0){
+                    file_error("can't change directory");
+                }
+                if(play_list.music_dir!=NULL)
+                    free(play_list.music_dir);
+                play_list.music_dir = get_current_dir();
                 break;
             case 's':
                 use_star_dir = 1;
@@ -97,7 +103,7 @@ int print_interface() {
 
     play_list.file_alloc_num = 100;
     play_list.file_used_num = 0;
-    if (read_dir(directory_name) < 0) {
+    if (read_dir(play_list.music_dir) < 0) {
         return -1;
     }
 
@@ -112,15 +118,14 @@ int print_interface() {
             printf("%d: %s \n", i + 1, play_list.sorted_file[i]->name);
         }
 #endif
-    /*0为哨兵位，歌单从1开始*/
-    play_list.current_music = 1;
+    play_list.current_music = 0;
     while (1) {
     }
 }
 
 static void *get_cmd(void *arg) {
     char c;
-/*
+    /*
     if (setvbuf(stdin,NULL,_IONBF,0) != 0) {
 #ifndef NDEBUG
         printf("buf modify error\n");
@@ -155,10 +160,10 @@ static void *get_cmd(void *arg) {
                 play_list.current_music++;
                 break;
             case 'b':
-            
+
                 strcat(play_cmd, play_list.sorted_file[play_list.current_music]->name);
 #ifndef NDBUG
-                printf("now playing: %s \n id = %d\n",play_cmd,play_list.current_music);
+                printf("now playing: %s \n id = %d\n", play_cmd, play_list.current_music);
                 printf("song : %s\n", play_list.sorted_file[play_list.current_music]->name);
 #endif
                 system(play_cmd);
@@ -172,21 +177,63 @@ static void *get_cmd(void *arg) {
     }
 }
 
-static int play(){
+static int play() {
     pid_t pid;
-    if((pid = fork()) < 0){
+    if ((pid = fork()) < 0) {
         printf("play error\n");
         return -1;
     } else if (pid == 0) {
         return 0;
 
     } else {
-        if(execlp("mplayer", play_list.sorted_file[play_list.current_music]->name) < 0){
+        if (execlp("mplayer", play_list.sorted_file[play_list.current_music]->name) < 0) {
             printf("play fail\n");
             return -1;
         }
         return 0;
     }
+}
+
+char *get_current_dir(){
+
+    char *dir = malloc(PATHMAX);
+    if (dir == NULL) {
+        alloc_error();
+        return NULL;
+    }
+    if (getcwd(dir, PATHMAX) == NULL) {
+        file_error("can't get pwd");
+        return NULL;
+    }
+    int size = strlen(dir);
+    dir[size++] = '/';
+    dir[size] = '\0';
+    return dir;
+}
+
+static int change_dir(char *dir) {
+    char *pwd = getenv("PWD");
+    if (pwd == NULL) {
+        pwd = malloc(128);
+        if (pwd == NULL) {
+            alloc_error();
+            return -1;
+        }
+        memcpy(pwd, "name=", 6);
+    }
+    int len = strlen(dir) + 1;
+    if (strlen(pwd) < len + 5) {
+        /*多分配一点内存*/
+        if ((realloc(pwd, len + 64)) == NULL) {
+            alloc_error();
+            return -1;
+        }
+    }
+    memcpy(pwd + 5, dir, len);
+    if (putenv(pwd) != 0) {
+        return -1;
+    }
+    return 0;
 }
 
 static void print_dir() {
@@ -209,5 +256,18 @@ static char *init_directory_name(char *directory) {
         directory_name[size++] = PATH_SEPARATOR;
         directory_name[size] = '\0';
     }
+    /*如果是绝对路径*/
+    if(directory[0] == '/'){
+        setenv("PWD", directory, 1);
+        return directory;
+    }
+    else{
+        int size = strlen(play_list.music_dir);
+       
+        char *tmp = malloc(+size + 64);
+        memcpy(tmp, "PWD=", 5);
+        strcat(tmp, play_list.music_dir);
+    }
+
     return directory_name;
 }

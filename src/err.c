@@ -8,3 +8,7 @@ void file_error(char *msg) {
 void alloc_error() {
     fprintf(stderr, "alloc error\n");
 }
+
+void player_error(char *msg){
+    fprintf(stderr, "%s :  ", msg);
+}

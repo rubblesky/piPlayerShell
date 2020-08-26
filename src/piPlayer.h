@@ -1,18 +1,17 @@
 #ifndef PIPLARYER_H
 #define PIPLARYER_H
 
+#include <dirent.h>
+#include <stdbool.h>
+#include <sys/stat.h>
+#include <time.h>
+
 #include "config.h"
 
-#include<stdbool.h>
-#include<dirent.h>
-#include<time.h>
-#include<sys/stat.h>
-
-#define PATHMAX 256
+#define PATHMAX 1024
 /*路径分隔符*/
 #define PATH_SEPARATOR '/'
 
-char *directory_name;
 
 /*指定目录*/
 extern bool is_specify_directory;
@@ -22,38 +21,35 @@ extern bool use_star_dir;
 extern bool show_hidden_files;
 typedef long int music_t;
 
-
-enum file_type
-  {
+enum file_type {
     unknown,
     fifo,
     chardev,
-    directory,          /*目录*/
+    directory, /*目录*/
     blockdev,
-    normal,             /*普通文件*/
+    normal, /*普通文件*/
     symbolic_link,
     sock,
     whiteout,
     arg_directory
-  };
+};
 
-
-struct file_info{
-    char * name;
+struct file_info {
+    char *name;
     struct stat stat;
     enum file_type file_type;
     //time_t mtime;
 };
 
-enum sort_rule{
+enum sort_rule {
     by_name,
     by_last_modification_time
 };
 
 /*播放列表信息*/
-struct play_list_info
-{
-    
+struct play_list_info {
+    /*音乐文件夹名*/
+    char *music_dir;
     /*文件数组*/
     struct file_info *file;
     /*排序方式*/
@@ -67,12 +63,10 @@ struct play_list_info
     相应下标应该-1
     */
     music_t file_used_num;
-    
+
     /*当前选择的音乐*/
     music_t current_music;
 };
-
-
 
 extern struct play_list_info play_list;
 #endif

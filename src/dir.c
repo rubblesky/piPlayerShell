@@ -73,9 +73,7 @@ static int add_file(char *file_name) {
             return 0;
         }
     }
-#ifndef NDEBUG
-    printf("now  add_file\n");
-#endif
+
     if (play_list.file_used_num == play_list.file_alloc_num) {
         play_list.file_alloc_num *= 2;
         play_list.file = realloc(play_list.file, play_list.file_alloc_num * sizeof(*play_list.file));
@@ -86,16 +84,12 @@ static int add_file(char *file_name) {
         }
     }
 
-    assert(strlen(directory_name) + strlen(file_name) + 1 <= PATHMAX);
+    assert(strlen(play_list.music_dir) + strlen(file_name) + 1 <= PATHMAX);
     char *file_path = malloc(PATHMAX * sizeof(char *));
-    int dir_size = strlen(directory_name);
+    int dir_size = strlen(play_list.music_dir);
     int name_size = strlen(file_name);
-    memcpy(file_path, directory_name, dir_size);
+    memcpy(file_path, play_list.music_dir, dir_size);
     memcpy(file_path + dir_size, file_name, name_size + 1);
-
-#ifndef NDEBUG
-    printf("file_path is %s\n", file_path);
-#endif
 
     struct file_info *f = &(play_list.file[play_list.file_used_num]);
     play_list.sorted_file[play_list.file_used_num++] = f;
@@ -103,9 +97,6 @@ static int add_file(char *file_name) {
     f->name = malloc(sizeof(char) * (name_size + 2));
     memcpy(f->name, file_name, name_size + 1);
 
-#ifndef NDEBUG
-    printf("file_name is %s\n", f->name);
-#endif
 
     if (stat(file_path, &(f->stat)) < 0) {
         file_error("stat fail");
@@ -119,21 +110,11 @@ static int add_file(char *file_name) {
             f->file_type == directory;
             f->name[name_size++] = PATH_SEPARATOR;
             f->name[name_size] = '\0';
-
-#ifndef NDEBUG
-            printf("dir_name is %s\n", f->name);
-#endif
         } else {
             f->file_type == unknown;
             /*处理其他类型文件*/
         }
     }
-#ifndef NDEBUG
-    if (f->file_type == normal)
-        printf("normal file\n");
-    else if (f->file_type == directory)
-        printf("directory \n");
-#endif
     free(file_path);
     return 0;
 
