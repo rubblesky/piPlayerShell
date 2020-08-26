@@ -10,5 +10,5 @@ void alloc_error() {
 }
 
 void player_error(char *msg){
-    fprintf(stderr, "%s :  ", msg);
+    perror(msg);
 }
