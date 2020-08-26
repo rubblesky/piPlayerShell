@@ -12,6 +12,7 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "dir.h"
 #include "err.h"
@@ -166,9 +167,13 @@ static void *get_cmd(void *arg) {
                 break;
             case 'b':
                 play();
+                #ifndef DEBUG
+                printf("playing\n");
+#endif
                 break;
             case 'q':
                 tcsetattr(fileno(stdin), TCSADRAIN, &old_tty_attr);
+                printf("Exit...\n");
                 exit(0);
             default:
                 break;
@@ -185,8 +190,11 @@ static int play() {
         return 0;
 
     } else {
-        if (execlp("mplayer","mplayer", play_list.sorted_file[play_list.current_music]->name , NULL) < 0) {
-            player_error(NULL);
+        FILE* fout = freopen("/dev/null","w",stdout);
+        FILE *ferr = freopen("/dev/null", "w", stderr);
+        
+        if (execlp("mplayer", "mplayer", play_list.sorted_file[play_list.current_music]->name, NULL) < 0) {
+            player_error("mplayer");
             return -1;
         }
         return 0;

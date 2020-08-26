@@ -10,5 +10,6 @@ void alloc_error() {
 }
 
 void player_error(char *msg){
+
     perror(msg);
 }
