@@ -36,6 +36,8 @@ bool show_hidden_files = 0;
 static int print_interface();
 /*读取键盘命令*/
 static void *get_cmd(void *arg);
+/*播放音乐*/
+static int play();
 
 /*打印目录*/
 static void print_dir();
@@ -110,14 +112,15 @@ int print_interface() {
             printf("%d: %s \n", i + 1, play_list.sorted_file[i]->name);
         }
 #endif
-    play_list.current_music = 0;
+    /*0为哨兵位，歌单从1开始*/
+    play_list.current_music = 1;
     while (1) {
     }
 }
 
 static void *get_cmd(void *arg) {
     char c;
-    /*
+/*
     if (setvbuf(stdin,NULL,_IONBF,0) != 0) {
 #ifndef NDEBUG
         printf("buf modify error\n");
@@ -125,23 +128,24 @@ static void *get_cmd(void *arg) {
 
     }
 */
-    struct termios old;
-    if (tcgetattr(fileno(stdin), &old) < 0) {
+    struct termios old_tty_attr, new_tty_attr;
+    if (tcgetattr(fileno(stdin), &old_tty_attr) < 0) {
 #ifndef NDEBUG
         printf("can't get tty attribute\n");
 #endif
         exit(-1);
     }
+    new_tty_attr = old_tty_attr;
     /*修改模式为非规范模式*/
-    old.c_lflag &= ~ICANON;
-    old.c_lflag &= ~ECHO;
-    if (tcsetattr(fileno(stdin), TCSADRAIN, &old) < 0) {
+    new_tty_attr.c_lflag &= ~ICANON;
+    new_tty_attr.c_lflag &= ~ECHO;
+    if (tcsetattr(fileno(stdin), TCSADRAIN, &new_tty_attr) < 0) {
 #ifndef NDEBUG
         printf("can't set tty attribute\n");
 #endif
         exit(-1);
     }
-
+    char play_cmd[128] = "mplayer ";
     while ((c = fgetc(stdin)) != EOF) {
         switch (c) {
             case 'u':
@@ -150,11 +154,38 @@ static void *get_cmd(void *arg) {
             case 'd':
                 play_list.current_music++;
                 break;
+            case 'b':
+            
+                strcat(play_cmd, play_list.sorted_file[play_list.current_music]->name);
+#ifndef NDBUG
+                printf("now playing: %s \n id = %d\n",play_cmd,play_list.current_music);
+                printf("song : %s\n", play_list.sorted_file[play_list.current_music]->name);
+#endif
+                system(play_cmd);
+                break;
             case 'q':
+                tcsetattr(fileno(stdin), TCSADRAIN, &old_tty_attr);
                 exit(0);
             default:
                 break;
         }
+    }
+}
+
+static int play(){
+    pid_t pid;
+    if((pid = fork()) < 0){
+        printf("play error\n");
+        return -1;
+    } else if (pid == 0) {
+        return 0;
+
+    } else {
+        if(execlp("mplayer", play_list.sorted_file[play_list.current_music]->name) < 0){
+            printf("play fail\n");
+            return -1;
+        }
+        return 0;
     }
 }
 
