@@ -264,14 +264,17 @@ static int play(pid_t last_song, FILE **fpipe) {
         setbuf(ferr, NULL);
         fclose(stdout);
         fclose(stderr);
-        close(STDIN_FILENO);
+        if(dup2(fd[0],STDIN_FILENO) != STDIN_FILENO){
+            file_error("dup2 ");
+            exit(-1);
+        }
 
         close(fd[1]);
         if (execlp("mplayer", "mplayer", play_list.sorted_file[play_list.current_music]->name, NULL) < 0) {
             player_error(ferr, "mplayer");
-            _exit(-1);
+            exit(-1);
         }
-        _exit(0);
+        exit(0);
     }
 }
 
