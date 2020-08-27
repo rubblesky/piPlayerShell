@@ -45,7 +45,7 @@ static void *get_cmd(void *arg);
   fd1为父进程向子进程的通讯管道
   fd2为子进程向父进程的通讯管道
 */
-static int play(pid_t last_song, FILE *fpipe);
+static int play(pid_t last_song, FILE **fpipe);
 /*获取播放器状态*/
 void get_player_status(int *last_song);
 
@@ -186,7 +186,7 @@ static void *get_cmd(void *arg) {
                 break;
             case 'b':
 
-                last_song = play(last_song, fpipe);
+                last_song = play(last_song, &fpipe);
                 ps = PLAYING;
                 /*监视进程子结束的线程*/
                 if (pthread_create(&tidp, NULL, (void *(*)(void *))get_player_status, &last_song) < 0) {
@@ -228,7 +228,7 @@ void get_player_status(int *last_song) {
 
 }
 
-static int play(pid_t last_song, FILE *fpipe) {
+static int play(pid_t last_song, FILE **fpipe) {
     if (last_song != 0) {
         kill(last_song, SIGINT);
     }
@@ -244,7 +244,7 @@ static int play(pid_t last_song, FILE *fpipe) {
     } else if (pid != 0) {
         /*父进程*/
         close(fd[0]);
-        fpipe = fdopen(fd[1], "w");
+        *fpipe = fdopen(fd[1], "w");
         return pid;
 
     } else {
