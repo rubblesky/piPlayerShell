@@ -25,7 +25,8 @@
 
 /*播放列表*/
 struct play_list_info play_list;
-
+/*播放器状态*/
+enum player_status ps;
 /*指定目录*/
 bool is_specify_directory = 0;
 /*使用收藏目录*/
@@ -40,8 +41,15 @@ struct termios old_tty_attr;
 static int print_interface();
 /*读取键盘命令*/
 static void *get_cmd(void *arg);
-/*播放音乐*/
-static int play(pid_t last_song);
+/*播放音乐 
+  fd1为父进程向子进程的通讯管道
+  fd2为子进程向父进程的通讯管道
+*/
+static int play(pid_t last_song, FILE *fpipe);
+/*获取播放器状态*/
+void get_player_status(int *last_song);
+
+
 /*获取当前音乐目录*/
 char *get_current_dir();
 
@@ -137,6 +145,7 @@ int print_interface() {
 }
 
 static void *get_cmd(void *arg) {
+    pthread_t tidp;
     char c;
     /*
     if (setvbuf(stdin,NULL,_IONBF,0) != 0) {
@@ -164,6 +173,7 @@ static void *get_cmd(void *arg) {
         exit_player(-1);
     }
     pid_t last_song = 0;
+    FILE *fpipe = NULL;
     while ((c = fgetc(stdin)) != EOF) {
         switch (c) {
             case 'u':
@@ -175,19 +185,30 @@ static void *get_cmd(void *arg) {
                     play_list.current_music++;
                 break;
             case 'b':
-                last_song = play(last_song);
+
+                last_song = play(last_song, fpipe);
+                ps = PLAYING;
+                /*监视进程子结束的线程*/
+                if (pthread_create(&tidp, NULL, (void *(*)(void *))get_player_status, &last_song) < 0) {
+#ifndef NDEBUG
+                    printf("can't create player pthread\n");
+#endif
+                    exit(-1);
+                }
 #ifndef DEBUG
                 printf("playing %d\n", play_list.current_music + 1);
 #endif
                 break;
-            case 'q':
-                /*
-                if (last_song != 0) {
-                    kill(last_song, SIGINT);
+            
+            case ' ':
+                if (ps == PLAYING){
+                    fputc(c, fpipe);
+#ifndef DEBUG
+                    printf("player status :%s\n", (ps == PLAYING)?"playing":"stop");
+#endif
                 }
-                tcsetattr(fileno(stdin), TCSADRAIN, &old_tty_attr);
-                printf("Exit...\n");
-*/
+                break;
+            case 'q':
                 printf("Exit...\n");
                 exit_player(0);
 
@@ -197,24 +218,41 @@ static void *get_cmd(void *arg) {
     }
 }
 
-static int play(pid_t last_song) {
+void get_player_status(int *last_song) {
+        int statloc;
+        pid_t p = wait(&statloc);
+#ifndef NDEBUG
+        printf("wait pid :%d  exit stauts : %d\n", p,WEXITSTATUS(statloc));
+#endif
+        ps = STOP;
+
+}
+
+static int play(pid_t last_song, FILE *fpipe) {
     if (last_song != 0) {
         kill(last_song, SIGINT);
     }
-    int statloc;
-#ifndef NDEBUG
-    printf("wait :  %d\n", last_song == wait(&statloc));
-#endif
+
+    int fd[2];
+    if (pipe(fd) < 0) {
+        file_error("pipe error");
+    }
     pid_t pid;
     if ((pid = fork()) < 0) {
         printf("play error\n");
         return -1;
     } else if (pid != 0) {
         /*父进程*/
+        close(fd[0]);
+        fpipe = fdopen(fd[1], "w");
         return pid;
 
     } else {
         /*子进程*/
+
+#ifndef NDEBUG
+        printf("child pid:%d\n", getpid());
+#endif
         /*子进程恢复对SIGINT信号的处理*/
         signal(SIGINT, SIG_DFL);
         /*关闭输出流 使之不显示*/
@@ -224,16 +262,16 @@ static int play(pid_t last_song) {
             file_error("fdopen error");
         }
         setbuf(ferr, NULL);
-        close(STDOUT_FILENO);
-        close(STDERR_FILENO);
-        //FILE *fout = freopen("/dev/null", "w", stdout);
-        //FILE *ferr = freopen("/dev/null", "w", stderr);
+        fclose(stdout);
+        fclose(stderr);
+        close(STDIN_FILENO);
 
+        close(fd[1]);
         if (execlp("mplayer", "mplayer", play_list.sorted_file[play_list.current_music]->name, NULL) < 0) {
             player_error(ferr, "mplayer");
-            return -1;
+            _exit(-1);
         }
-        return 0;
+        _exit(0);
     }
 }
 

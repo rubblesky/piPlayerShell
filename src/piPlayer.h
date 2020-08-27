@@ -21,6 +21,12 @@ extern bool use_star_dir;
 extern bool show_hidden_files;
 typedef long int music_t;
 
+enum player_status {
+    PLAYING,
+    STOP,
+    PAUSE
+};
+
 enum file_type {
     unknown,
     fifo,
