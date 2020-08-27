@@ -201,6 +201,7 @@ static void *get_cmd(void *arg) {
                 break;
             
             case ' ':
+            case '\t':
                 if (ps == PLAYING){
                     fputc(c, fpipe);
 #ifndef DEBUG
@@ -245,7 +246,9 @@ static int play(pid_t last_song, FILE **fpipe) {
         /*父进程*/
         close(fd[0]);
         *fpipe = fdopen(fd[1], "w");
+        setbuf(*fpipe, NULL);
         return pid;
+
 
     } else {
         /*子进程*/
