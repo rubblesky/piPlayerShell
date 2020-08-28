@@ -3,7 +3,7 @@
 #include <errno.h>
 
 void file_error(char *msg) {
-    fprintf(stderr, "file error:  ");
+    fprintf(stderr, "file error:");
     perror(msg);
 }
 

@@ -68,10 +68,11 @@ static int get_file_info(char *directory_name) {
 }
 
 static int add_file(char *file_name) {
-    if (!show_hidden_files) {
-        if (file_name[0] == '.') {
-            return 0;
-        }
+    if(strcmp(file_name,".") == 0){
+        return 0;
+    }
+    if (!show_all_files) {
+        /*这里要加一个判断文件后缀的函数*/
     }
 
     if (play_list.file_used_num == play_list.file_alloc_num) {

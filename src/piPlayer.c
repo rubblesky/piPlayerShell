@@ -27,12 +27,10 @@
 struct play_list_info play_list;
 /*播放器状态*/
 enum player_status ps;
-/*指定目录*/
-bool is_specify_directory = 0;
 /*使用收藏目录*/
 bool use_star_dir = 0;
-/*显示隐藏文件*/
-bool show_hidden_files = 0;
+/*显示非音乐文件*/
+bool show_all_files = 0;
 /*初始终端设置
   作为程序结束时恢复终端属性的依据
 */
@@ -40,6 +38,8 @@ static struct termios old_tty_attr;
 
 /*设置终端属性*/
 static void set_tty_attr();
+/*切换目录*/
+static int change_dirctory(char *dir);
 
 /*绘制界面*/
 static int
@@ -47,7 +47,7 @@ print_interface();
 /*读取键盘命令*/
 static void *get_cmd(void *arg);
 /*处理方向键*/
-static void deal_arrow_key( FILE *fpipe);
+static void deal_arrow_key(FILE *fpipe);
 
 static FILE *play();
 /*fork播放音乐的子进程 
@@ -71,12 +71,12 @@ static void exit_player(int stauts);
 static void print_dir();
 
 #define NEXT_SONG()                                              \
-    if (play_list.current_music < play_list.file_used_num - 1) { \
-        play_list.current_music++;                               \
+    if (play_list.current_choose < play_list.file_used_num - 1) { \
+        play_list.current_choose++;                               \
     }
 #define LAST_SONG()                    \
-    if (play_list.current_music > 0) { \
-        play_list.current_music--;     \
+    if (play_list.current_choose > 0) { \
+        play_list.current_choose--;     \
     }
 
 static char short_opts[] = "std:";
@@ -97,25 +97,9 @@ int main(int argc, char *argv[]) {
             case 0:
                 break;
             case 'd':
-                is_specify_directory = 1;
-                //play_list.music_dir = init_directory_name(optarg);
-
-#ifndef NDEBUG
-                printf("now cwd is %s\n", play_list.music_dir);
-#endif
-
-                if (chdir(optarg) < 0) {
-                    file_error("can't change directory");
+                if(change_dirctory(optarg)<0){
                     exit_player(-1);
                 }
-                if (play_list.music_dir != NULL)
-                    free(play_list.music_dir);
-                play_list.music_dir = get_current_dir();
-
-#ifndef NDEBUG
-                printf("now cwd is %s\n", play_list.music_dir);
-#endif
-
                 break;
             case 's':
                 use_star_dir = 1;
@@ -160,11 +144,23 @@ static void set_tty_attr() {
     }
 }
 
-static int print_interface() {
-#ifndef NDEBUG
-    printf("now  print_interface\n");
-#endif
+static int change_dirctory(char *dir) {
+    if (chdir(dir) < 0) {
+        file_error("can't change directory");
+        return -1;
+    }
+    if (play_list.music_dir != NULL) {
+        free(play_list.music_dir);
+    }
+    play_list.music_dir = get_current_dir();
+    if (play_list.music_dir != NULL) {
+        return 0;
+    } else {
+        return -1;
+    }
+}
 
+static int print_interface() {
     play_list.file_alloc_num = 100;
     play_list.file_used_num = 0;
     if (read_dir(play_list.music_dir) < 0) {
@@ -182,14 +178,14 @@ static int print_interface() {
             printf("%d: %s \n", i + 1, play_list.sorted_file[i]->name);
         }
 #endif
-    play_list.current_music = 0;
+    play_list.current_choose = 0;
     while (1) {
     }
 }
 
 static void *get_cmd(void *arg) {
     char c;
-    FILE* fpipe = NULL;
+    FILE *fpipe = NULL;
     while ((c = fgetc(stdin)) != EOF) {
         switch (c) {
             case 'u':
@@ -203,7 +199,7 @@ static void *get_cmd(void *arg) {
                 break;
             case 'b':
                 fpipe = play();
-                if(fpipe == NULL){
+                if (fpipe == NULL) {
                     printf("play fail");
                 }
                 break;
@@ -229,7 +225,7 @@ static void *get_cmd(void *arg) {
     }
 }
 
-static void deal_arrow_key(FILE *fpipe){
+static void deal_arrow_key(FILE *fpipe) {
     char c;
     if ((c = fgetc(stdin)) != '[') {
         ungetc(c, stdin);
@@ -258,7 +254,7 @@ static void deal_arrow_key(FILE *fpipe){
     }
 }
 
-static FILE *play(){
+static FILE *play() {
     static pid_t last_song = 0;
     static pthread_t tidp;
     FILE *fpipe = NULL;
@@ -271,16 +267,16 @@ static FILE *play(){
     /*监视进程子结束的线程*/
     int error_num;
     if ((error_num = pthread_create(&tidp, NULL, (void *(*)(void *))get_player_status, &last_song)) < 0) {
-        fprintf(stderr,strerror(error_num));
+        fprintf(stderr, strerror(error_num));
         exit(-1);
     }
 #ifndef NDEBUG
-    printf("playing %d\n", play_list.current_music + 1);
+    printf("playing %d\n", play_list.current_choose + 1);
 #endif
     return fpipe;
 }
 
-    void get_player_status(int *last_song) {
+void get_player_status(int *last_song) {
     int statloc;
     pid_t p = wait(&statloc);
 #ifndef NDEBUG
@@ -335,7 +331,7 @@ static void launch_player(int fd_pipe[]) {
         exit(-1);
     }
     close(fd_pipe[0]);
-    if (execlp("mplayer", "mplayer", play_list.sorted_file[play_list.current_music]->name, NULL) < 0) {
+    if (execlp("mplayer", "mplayer", play_list.sorted_file[play_list.current_choose]->name, NULL) < 0) {
         player_error(ferr, "mplayer");
         exit(-1);
     }

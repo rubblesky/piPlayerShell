@@ -12,13 +12,10 @@
 /*路径分隔符*/
 #define PATH_SEPARATOR '/'
 
-
-/*指定目录*/
-extern bool is_specify_directory;
 /*使用收藏目录*/
 extern bool use_star_dir;
-/*显示隐藏文件*/
-extern bool show_hidden_files;
+/*显示非音乐文件*/
+extern bool show_all_files;
 typedef long int music_t;
 
 enum player_status {
@@ -71,7 +68,7 @@ struct play_list_info {
     music_t file_used_num;
 
     /*当前选择的音乐*/
-    music_t current_music;
+    music_t current_choose;
 };
 
 extern struct play_list_info play_list;
