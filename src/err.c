@@ -17,3 +17,6 @@ void player_error(FILE * out,char *msg){
     fprintf(out,"player error : %s  %s",msg,strerror(errno));
     perror(msg);
 }
+void sys_error(char *msg){
+    perror(msg);
+}
