@@ -69,6 +69,7 @@ int main(int argc, char *argv[]) {
     /*初始化默认值*/
     play_list.sort_rule = by_name;
     play_list.music_dir = get_current_dir();
+    ps = STOP;
     /*读取参数*/
     int opt;
     while ((opt = getopt_long(argc, argv, short_opts, long_opt, NULL)) != -1) {
@@ -201,12 +202,15 @@ static void *get_cmd(void *arg) {
                 break;
             
             case ' ':
-            case '\t':
-                if (ps == PLAYING){
-                    fputc(c, fpipe);
+            case '\n':
+                if (ps == PLAYING){ 
+                    if(fputc(c, fpipe) == EOF){
+                        file_error("can't write to pipe");
+                    }
 #ifndef DEBUG
                     printf("player status :%s\n", (ps == PLAYING)?"playing":"stop");
 #endif
+                    fflush(fpipe);
                 }
                 break;
             case 'q':
@@ -267,12 +271,12 @@ static int play(pid_t last_song, FILE **fpipe) {
         setbuf(ferr, NULL);
         fclose(stdout);
         fclose(stderr);
+        close(fd[1]);
         if(dup2(fd[0],STDIN_FILENO) != STDIN_FILENO){
-            file_error("dup2 ");
+            player_error(ferr,"dup2 ");
             exit(-1);
         }
-
-        close(fd[1]);
+        close(fd[0]);
         if (execlp("mplayer", "mplayer", play_list.sorted_file[play_list.current_music]->name, NULL) < 0) {
             player_error(ferr, "mplayer");
             exit(-1);
