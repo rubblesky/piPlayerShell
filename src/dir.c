@@ -1,16 +1,16 @@
 #include "dir.h"
 
+#include <assert.h>
 #include <dirent.h>
 #include <errno.h>
-#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "sort.h"
 #include "err.h"
+#include "sort.h"
 
 /*获取目录下文件信息*/
 static int get_file_info(char *directory_name);
@@ -27,14 +27,14 @@ int compare_by_modification(struct file_info **file, int pos1, int pos2);
 /*初始化目录*/
 static char *init_directory_name(char *directory);
 
-int read_dir(char *directory_name){
-    if(get_file_info(directory_name)<0){
+int read_dir(char *directory_name) {
+    if (get_file_info(directory_name) < 0) {
         return -1;
     }
     sort_file();
 }
 
-    static int get_file_info(char *directory_name) {
+static int get_file_info(char *directory_name) {
 #ifndef NDEBUG
     printf("now  get_file_info\n");
 #endif
@@ -59,7 +59,7 @@ int read_dir(char *directory_name){
             add_file(next_file->d_name);
         } else if (errno != 0) {
             file_error("read dir fail");
-
+            return -1;
         } else {
             break;
         }
@@ -96,7 +96,6 @@ static int add_file(char *file_name) {
 
     f->name = malloc(sizeof(char) * (name_size + 2));
     memcpy(f->name, file_name, name_size + 1);
-
 
     if (stat(file_path, &(f->stat)) < 0) {
         file_error("stat fail");

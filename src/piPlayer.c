@@ -34,30 +34,38 @@ bool use_star_dir = 0;
 /*显示隐藏文件*/
 bool show_hidden_files = 0;
 /*初始终端设置
-  作为程序结束时恢复终端属性的依据*/
-struct termios old_tty_attr;
+  作为程序结束时恢复终端属性的依据
+*/
+static struct termios old_tty_attr;
+
+/*设置终端属性*/
+static void set_tty_attr();
 
 /*绘制界面*/
-static int print_interface();
+static int
+print_interface();
 /*读取键盘命令*/
 static void *get_cmd(void *arg);
 /*播放音乐 
-  fd1为父进程向子进程的通讯管道
-  fd2为子进程向父进程的通讯管道
+  fpipe为父进程向子进程传递信息的管道
 */
 static int play(pid_t last_song, FILE **fpipe);
 /*获取播放器状态*/
 void get_player_status(int *last_song);
 
-
 /*获取当前音乐目录*/
 char *get_current_dir();
 
-/*退出程序*/
-void exit_player(int stauts);
+/*退出程序
+  静态函数 程序必须从主函数文件退出
+*/
+static void exit_player(int stauts);
 
 /*打印目录*/
 static void print_dir();
+
+#define NEXT_SONG() if (play_list.current_music < play_list.file_used_num - 1){play_list.current_music++;}
+#define LAST_SONG() if (play_list.current_music > 0){play_list.current_music--;}
 
 static char short_opts[] = "std:";
 static struct option long_opt[] =
@@ -86,6 +94,7 @@ int main(int argc, char *argv[]) {
 
                 if (chdir(optarg) < 0) {
                     file_error("can't change directory");
+                    exit_player(-1);
                 }
                 if (play_list.music_dir != NULL)
                     free(play_list.music_dir);
@@ -108,6 +117,7 @@ int main(int argc, char *argv[]) {
     }
     /*收到SIGINT信号时执行默认退出程序*/
     signal(SIGINT, exit_player);
+    set_tty_attr();
     pthread_t tidp;
     if (pthread_create(&tidp, NULL, get_cmd, NULL) < 0) {
 #ifndef NDEBUG
@@ -118,7 +128,27 @@ int main(int argc, char *argv[]) {
     print_interface();
 }
 
-int print_interface() {
+static void set_tty_attr(){
+    struct termios new_tty_attr;
+    if (tcgetattr(fileno(stdin), &old_tty_attr) < 0) {
+#ifndef NDEBUG
+        printf("can't get tty attribute\n");
+#endif
+        exit_player(-1);
+    }
+    new_tty_attr = old_tty_attr;
+    /*修改模式为非规范模式*/
+    new_tty_attr.c_lflag &= ~ICANON;
+    new_tty_attr.c_lflag &= ~ECHO;
+    if (tcsetattr(fileno(stdin), TCSADRAIN, &new_tty_attr) < 0) {
+#ifndef NDEBUG
+        printf("can't set tty attribute\n");
+#endif
+        exit_player(-1);
+    }
+}
+
+static int print_interface() {
 #ifndef NDEBUG
     printf("now  print_interface\n");
 #endif
@@ -148,43 +178,46 @@ int print_interface() {
 static void *get_cmd(void *arg) {
     pthread_t tidp;
     char c;
-    /*
-    if (setvbuf(stdin,NULL,_IONBF,0) != 0) {
-#ifndef NDEBUG
-        printf("buf modify error\n");
-#endif
-
-    }
-*/
-    struct termios new_tty_attr;
-    if (tcgetattr(fileno(stdin), &old_tty_attr) < 0) {
-#ifndef NDEBUG
-        printf("can't get tty attribute\n");
-#endif
-        exit_player(-1);
-    }
-    new_tty_attr = old_tty_attr;
-    /*修改模式为非规范模式*/
-    new_tty_attr.c_lflag &= ~ICANON;
-    new_tty_attr.c_lflag &= ~ECHO;
-    if (tcsetattr(fileno(stdin), TCSADRAIN, &new_tty_attr) < 0) {
-#ifndef NDEBUG
-        printf("can't set tty attribute\n");
-#endif
-        exit_player(-1);
-    }
     pid_t last_song = 0;
     FILE *fpipe = NULL;
     while ((c = fgetc(stdin)) != EOF) {
         switch (c) {
             case 'u':
-                if (play_list.current_music > 0)
-                    play_list.current_music--;
+                LAST_SONG();
                 break;
             case 'd':
-                if (play_list.current_music < play_list.file_used_num - 1)
-                    play_list.current_music++;
+                NEXT_SONG();
                 break;
+            case '\033':
+                if((c=fgetc(stdin)) != '['){
+                    ungetc(c, stdin);
+                    //ungetc(c, stdin);
+                    break;
+                }
+                else if((c=fgetc(stdin)) != EOF){
+                    switch (c)
+                    {
+                    case 'A':
+                        LAST_SONG()
+                        break;
+                    case 'B':
+                        NEXT_SONG()
+                        break;
+                    case 'C':
+                        if(ps != STOP)
+                            fprintf(fpipe, "\033[C");
+                        break;
+                    case 'D':
+                        if(ps != STOP)
+                            fprintf(fpipe, "\033[D");
+                        break;
+                    default:
+                        fprintf(stderr, "unknow command\n");
+                        break;
+                    }
+                }
+                break;
+
             case 'b':
 
                 last_song = play(last_song, &fpipe);
@@ -200,16 +233,16 @@ static void *get_cmd(void *arg) {
                 printf("playing %d\n", play_list.current_music + 1);
 #endif
                 break;
-            
+
             case ' ':
             case '\n':
-                if (ps == PLAYING){ 
-                    if(fputc(c, fpipe) == EOF){
-                        file_error("can't write to pipe");
+                if (ps == PLAYING || ps == PAUSE) {
+                    if (fputc(c, fpipe) == EOF) {
+                        file_error("send command fail\n");
+                    } else {
+                        if (c == ' ')
+                            ps = (ps == PAUSE) ? PLAYING : PAUSE;
                     }
-#ifndef DEBUG
-                    printf("player status :%s\n", (ps == PLAYING)?"playing":"stop");
-#endif
                     fflush(fpipe);
                 }
                 break;
@@ -224,13 +257,12 @@ static void *get_cmd(void *arg) {
 }
 
 void get_player_status(int *last_song) {
-        int statloc;
-        pid_t p = wait(&statloc);
+    int statloc;
+    pid_t p = wait(&statloc);
 #ifndef NDEBUG
-        printf("wait pid :%d  exit stauts : %d\n", p,WEXITSTATUS(statloc));
+    printf("wait pid :%d  exit stauts : %d\n", p, WEXITSTATUS(statloc));
 #endif
-        ps = STOP;
-
+    ps = STOP;
 }
 
 static int play(pid_t last_song, FILE **fpipe) {
@@ -253,7 +285,6 @@ static int play(pid_t last_song, FILE **fpipe) {
         setbuf(*fpipe, NULL);
         return pid;
 
-
     } else {
         /*子进程*/
 
@@ -272,8 +303,8 @@ static int play(pid_t last_song, FILE **fpipe) {
         fclose(stdout);
         fclose(stderr);
         close(fd[1]);
-        if(dup2(fd[0],STDIN_FILENO) != STDIN_FILENO){
-            player_error(ferr,"dup2 ");
+        if (dup2(fd[0], STDIN_FILENO) != STDIN_FILENO) {
+            player_error(ferr, "dup2 ");
             exit(-1);
         }
         close(fd[0]);
