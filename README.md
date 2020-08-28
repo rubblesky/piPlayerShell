@@ -8,6 +8,6 @@
 ## 构建方法
     cd piPlayerShell/
     mkdir build && cd build/
-    cmake
+    cmake ..
     make
 当前可执行文件默认生成位置为`piPlayerShell/build/bin/piPlayer`。
