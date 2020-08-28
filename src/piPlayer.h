@@ -72,4 +72,5 @@ struct play_list_info {
 };
 
 extern struct play_list_info play_list;
+
 #endif

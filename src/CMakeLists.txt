@@ -19,3 +19,4 @@ piPlayer
     PUBLIC 
     ${LIB_LIST}
 )
+

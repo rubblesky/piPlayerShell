@@ -15,4 +15,5 @@ int compare_by_filename(struct file_info **file, int pos1, int pos2);
 /*按照最后修改日期比较*/
 int compare_by_modification(struct file_info **file, int pos1, int pos2);
 
+
 #endif

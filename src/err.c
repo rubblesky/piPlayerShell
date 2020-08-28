@@ -20,3 +20,4 @@ void player_error(FILE * out,char *msg){
 void sys_error(char *msg){
     perror(msg);
 }
+

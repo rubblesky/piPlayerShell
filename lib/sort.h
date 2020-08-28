@@ -6,4 +6,5 @@
 void quick_sort(void *array, int p, int r,void(*compare)(void *,int,int), void (*exchange)(void *, int, int));
 
 
+
 #endif

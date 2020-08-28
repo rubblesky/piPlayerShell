@@ -12,3 +12,4 @@ void player_error(FILE *out, char *msg);
 /*其他错误*/
 void sys_error(char *msg);
 #endif
+
