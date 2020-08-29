@@ -12,8 +12,24 @@
 #include "err.h"
 #include "sort.h"
 
+char *music_file_suffix[] = {"acc", "ACC", "mp3", "MP3", "wav", "WAV"};
+static unsigned char const prime_offset[] =
+    {
+        0, 0, 1, 1, 3, 1, 3, 1, 5, 3, 3, 9, 3, 1, 3, 19, 15, 1, 5, 1, 3, 9, 3,
+        15, 3, 39, 5, 39, 57, 3, 35, 1, 5, 9, 41, 31, 5, 25, 45, 7, 87, 21,
+        11, 57, 17, 55, 21, 115, 59, 81, 27, 129, 47, 111, 33, 55, 5, 13, 27,
+        55, 93, 1, 57, 25};
+const int suffix_size = sizeof(music_file_suffix) / sizeof(char *);
+
+struct hash_table {
+    long (*eqs)[2];
+    int *buckets;
+    int nbuckets;
+};
+
 /*获取目录下文件信息*/
-static int get_file_info(char *directory_name);
+static int
+get_file_info(char *directory_name);
 /*向文件列表中添加读取到的文件*/
 static int add_file(char *file_name);
 /*文件排序*/
@@ -26,6 +42,12 @@ int compare_by_filename(struct file_info **file, int pos1, int pos2);
 int compare_by_modification(struct file_info **file, int pos1, int pos2);
 /*初始化目录*/
 static char *init_directory_name(char *directory);
+/*hash文件后缀*/
+long hash_suffix(char *filename);
+/*获得文件目录hash表*/
+struct hash_table *get_hash_table();
+/*是否为音乐文件*/
+static bool is_music(char *filename, struct hash_table *hash_table);
 
 int read_dir(char *directory_name) {
     if (get_file_info(directory_name) < 0) {
@@ -35,9 +57,6 @@ int read_dir(char *directory_name) {
 }
 
 static int get_file_info(char *directory_name) {
-#ifndef NDEBUG
-    printf("now  get_file_info\n");
-#endif
     DIR *dir = opendir(directory_name);
     struct dirent *next_file;
 
@@ -53,10 +72,24 @@ static int get_file_info(char *directory_name) {
         play_list.file = malloc(play_list.file_alloc_num * sizeof(*play_list.file));
         play_list.sorted_file = malloc(play_list.file_alloc_num * sizeof(*play_list.sorted_file));
     }
+    struct hash_table *hash_table;
+    if (!show_all_files) {
+        hash_table  = get_hash_table();
+    }
     while (1) {
         errno = 0;
         if (NULL != (next_file = readdir(dir))) {
-            add_file(next_file->d_name);
+            if(!show_all_files){
+                if(is_music(next_file->d_name,hash_table)){
+                    add_file(next_file->d_name);
+                }
+                else{
+                    continue;
+                }
+            }
+            else{
+                add_file(next_file->d_name);
+            }
         } else if (errno != 0) {
             file_error("read dir fail");
             return -1;
@@ -68,7 +101,7 @@ static int get_file_info(char *directory_name) {
 }
 
 static int add_file(char *file_name) {
-    if(strcmp(file_name,".") == 0){
+    if (strcmp(file_name, ".") == 0) {
         return 0;
     }
     if (!show_all_files) {
@@ -188,4 +221,67 @@ int compare_by_modification(struct file_info **file, int pos1, int pos2) {
         return 1;
     }
 #endif
+}
+long hash_suffix (char *filename) {
+    long hash = 0;
+    for (int i = strlen(filename)-1; filename[i] != '.' && i >= 0; i--) {
+        hash += filename[i];
+        hash <<= 7;
+    }
+    return hash;
+}
+struct hash_table *get_hash_table() {
+    int i;
+    for (i = 1; (size_t)1 << i < suffix_size / 3; i++)
+        continue;
+    int nbuckets = ((size_t)1 << i) - prime_offset[i];
+    int *buckets = calloc(nbuckets,sizeof(int));
+    if (buckets == NULL) {
+        alloc_error();
+        exit(-1); 
+    }
+    long(*eqs)[2] = calloc(suffix_size + 1, sizeof(eqs[2]));
+    if (eqs == NULL) {
+        alloc_error();
+        exit(-1);
+    }
+    long hash;
+    int n = 1;
+    for (int s = 0; s < suffix_size; s++) {
+        hash = hash_suffix(music_file_suffix[s]);
+        int b = hash % nbuckets;
+        if (buckets[b] == 0) {
+            eqs[n][1] = hash;
+            buckets[b] = n;
+            n++;
+        } else {
+            eqs[n][1] = hash;
+            eqs[n][0] = buckets[b];
+            buckets[b] = n;
+            n++;
+        }
+    }
+    struct hash_table *hash_table = malloc(sizeof(*hash_table));
+    if(hash_table == NULL){
+        alloc_error();
+        exit(-1);
+    }
+    hash_table->buckets = buckets;
+    hash_table->eqs = eqs;
+    hash_table->nbuckets = nbuckets;
+    return hash_table;
+}
+static bool is_music(char *filename,struct hash_table *hash_table) {
+    long hash = hash_suffix(filename);
+    int i = hash_table->buckets[hash % hash_table->nbuckets];
+    do {
+        if(hash_table->eqs[i][1] == hash){
+            /*hash值相同基本可以确定相同了
+              这里不再进行字符串比对了
+            */
+            return true;
+        }
+        i = hash_table->eqs[i][0];
+    } while (hash_table->eqs[i][0] != 0);
+    return false;
 }
