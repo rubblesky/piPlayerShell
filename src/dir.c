@@ -98,7 +98,7 @@ static int get_file_info(char *directory_name) {
             break;
         }
     }
-    free_hash_tbale();
+    free_hash_tbale(hash_table);
     closedir(dir);
 }
 
@@ -230,7 +230,7 @@ long hash_suffix (char *filename) {
 }
 struct hash_table *get_hash_table() {
     int i;
-    for (i = 1; (size_t)1 << i < suffix_size / 3; i++)
+    for (i = 2; (size_t)1 << i < suffix_size / 3; i++)
         continue;
     int nbuckets = ((size_t)1 << i) - prime_offset[i];
     int *buckets = calloc(nbuckets,sizeof(int));
