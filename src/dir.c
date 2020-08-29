@@ -46,6 +46,7 @@ static char *init_directory_name(char *directory);
 long hash_suffix(char *filename);
 /*获得文件目录hash表*/
 struct hash_table *get_hash_table();
+void free_hash_tbale(struct hash_table *hash_table);
 /*是否为音乐文件*/
 static bool is_music(char *filename, struct hash_table *hash_table);
 
@@ -97,6 +98,7 @@ static int get_file_info(char *directory_name) {
             break;
         }
     }
+    free_hash_tbale();
     closedir(dir);
 }
 
@@ -104,10 +106,6 @@ static int add_file(char *file_name) {
     if (strcmp(file_name, ".") == 0) {
         return 0;
     }
-    if (!show_all_files) {
-        /*这里要加一个判断文件后缀的函数*/
-    }
-
     if (play_list.file_used_num == play_list.file_alloc_num) {
         play_list.file_alloc_num *= 2;
         play_list.file = realloc(play_list.file, play_list.file_alloc_num * sizeof(*play_list.file));
@@ -271,7 +269,12 @@ struct hash_table *get_hash_table() {
     hash_table->nbuckets = nbuckets;
     return hash_table;
 }
-static bool is_music(char *filename,struct hash_table *hash_table) {
+void free_hash_tbale(struct hash_table *hash_table) {
+    free(hash_table->buckets);
+    free(hash_table->eqs);
+    free(hash_table);
+}
+static bool is_music(char *filename, struct hash_table *hash_table) {
     long hash = hash_suffix(filename);
     int i = hash_table->buckets[hash % hash_table->nbuckets];
     do {
