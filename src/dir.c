@@ -286,5 +286,10 @@ static bool is_music(char *filename, struct hash_table *hash_table) {
         }
         i = hash_table->eqs[i][0];
     } while (hash_table->eqs[i][0] != 0);
-    return false;
+    if (hash_table->eqs[i][1] == hash) {
+        return true;
+    }
+    else{
+        return false;    
+    }
 }

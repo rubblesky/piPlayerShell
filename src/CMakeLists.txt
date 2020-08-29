@@ -9,6 +9,7 @@ piPlayer
     ${SRC_LIST}
 )
 
+
 #添加线程库
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
