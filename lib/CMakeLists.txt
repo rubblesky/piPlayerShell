@@ -14,8 +14,9 @@ set_target_properties(terminal
 )
 target_include_directories(terminal PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
-find_package(ncurses REQUIRED)
-target_link_libraries(terminal PRIVATE ncurses)
+find_package(Curses REQUIRED)
+include_directories( ${NCURSES_INCLUDE_DIRS} )
+target_link_libraries(terminal PRIVATE ${NCURSES_LIBRARIES})
 
 
 add_library(sort SHARED)
