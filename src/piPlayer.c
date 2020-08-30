@@ -6,7 +6,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
-//#include <ncursesw.h>
+#include <ncursesw/ncurses.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -17,7 +17,8 @@
 #include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
-#include <ncurses.h>
+#include <locale.h>
+//#include <ncurses.h>
 
 #include "dir.h"
 #include "err.h"
@@ -27,6 +28,10 @@
 //extern char **environ;
 
 #define PAGE_SONGNUM 10
+enum pair {
+    PAIR_CHOOSE = 1,
+    PAIR_OTHER
+};
 
 /*播放列表*/
 struct play_list_info play_list;
@@ -49,8 +54,10 @@ static int change_dirctory(char *dir);
 /*绘制界面*/
 static int
 print_interface();
+void print_by_size();
 void print_in_width_termial(struct winsize *size);
 void print_in_narrow_termial(struct winsize *size);
+void player_init_color();
 /*读取键盘命令*/
 static void *get_cmd(void *arg);
 /*处理方向键*/
@@ -173,63 +180,63 @@ static int print_interface() {
     if (read_dir(play_list.music_dir) < 0) {
         return -1;
     }
-/*
-#ifndef NDEBUG
-    if (play_list.sort_rule == by_last_modification_time)
-        for (int i = 0; i < play_list.file_used_num; i++) {
-            printf("%d: %25s  time: %d\n", i + 1, play_list.sorted_file[i]->name, play_list.sorted_file[i]->stat.st_mtime);
-        }
-    else if (play_list.sort_rule == by_name)
-        for (int i = 0; i < play_list.file_used_num; i++) {
-            printf("%d: %s \n", i + 1, play_list.sorted_file[i]->name);
-        }
-#endif
-*/
+    play_list.current_choose = 0;
+    print_by_size();
+    while (1) {
+    }
+    endwin();
+}
+void print_by_size() {
     struct winsize size;
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &size) < 0) {
         file_error("ioctl");
         exit_player(-1);
     }
-    if(size.ws_col >= 2.3 * size.ws_row){
-#ifndef NDEBUG
-        printf("witdh  %d:%f\n",size.ws_col,size.ws_row*2.3);
-#endif
+    setlocale(LC_ALL, "");
+    if (size.ws_col >= 2.3 * size.ws_row) {
         print_in_width_termial(&size);
     } else {
-#ifndef NDEBUG
-        printf("narrow  %d:%f\n",size.ws_col,size.ws_row*2.3);
-#endif
         print_in_narrow_termial(&size);
     }
-    play_list.current_choose = 0;
-    while (1) {
-    }
-}
 
+}
 void print_in_width_termial(struct winsize *size) {
+    print_in_narrow_termial(size);
 }
 void print_in_narrow_termial(struct winsize *size) {
     initscr();
     cbreak();
+    player_init_color();
     refresh();
     int cell_height = size->ws_row / PAGE_SONGNUM;
 
-    attron(A_BOLD);
+    //attron(A_BOLD|COLOR_PAIR(PAIR_CHOOSE));
     int width = size->ws_col - 6;
     move(cell_height / 2, 2);
-    //mvprintw(cell_height / 2, 2,"%s", play_list.sorted_file[0]->name);
-    addstr(play_list.sorted_file[0]->name);
-    refresh();
-    attroff(A_BOLD);
-    for (int i = 1; i < PAGE_SONGNUM - 1 && i < play_list.file_used_num /*&&   */; i++) {
-        mvprintw(i * cell_height + cell_height / 2, 2 ,"%s", play_list.sorted_file[i]->name);
 
-        refresh();
+    int i = (play_list.current_choose > 5) ? play_list.current_choose - 5 : 0;
+
+    //mvprintw(cell_height / 2, 2, "%-.*s..." , width, play_list.sorted_file[i]->name);
+    //attroff(A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
+    attron(COLOR_PAIR(PAIR_OTHER));
+    for (; i < PAGE_SONGNUM - 1 && i < play_list.file_used_num /*&&   */; i++) {
+        if(i == play_list.current_choose){
+            attron(A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
+            mvprintw(i * cell_height + cell_height / 2, 2, "%-.*s...", width, play_list.sorted_file[i]->name);
+            attroff(A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
+            attron(COLOR_PAIR(PAIR_OTHER));
+        }
+        else{
+            mvprintw(i * cell_height + cell_height / 2, 2, "%-.*s...", width, play_list.sorted_file[i]->name);
+        }
     }
     refresh();
+}
 
-    getch();
-    endwin();
+void player_init_color() {
+    start_color();
+    init_pair(PAIR_CHOOSE, COLOR_WHITE, COLOR_BLUE);
+    init_pair(PAIR_OTHER, COLOR_BLACK, COLOR_WHITE);
 }
 
 static void *get_cmd(void *arg) {
@@ -285,9 +292,12 @@ static void deal_arrow_key(FILE *fpipe) {
         switch (c) {
             case 'A':
                 LAST_SONG()
+                print_by_size();
                 break;
             case 'B':
                 NEXT_SONG()
+                print_by_size();
+               
                 break;
             case 'C':
                 if (ps != STOP)
