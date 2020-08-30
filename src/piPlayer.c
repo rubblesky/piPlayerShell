@@ -253,6 +253,7 @@ static void *get_cmd(void *arg) {
             case '\033':
                 deal_arrow_key(fpipe);
                 break;
+            case '\n':
             case 'b':
                 fpipe = play();
                 play_list.current_playing = play_list.current_choose;
@@ -261,6 +262,8 @@ static void *get_cmd(void *arg) {
                 }
                 break;
 
+            case '-':
+            case '+':
             case ' ':
                 if (ps != STOP) {
                     if (fputc(c, fpipe) == EOF) {
@@ -423,6 +426,7 @@ static void print_dir() {
 void exit_player(int stauts) {
     /*向所有子进程发送终止信号*/
     kill(0, SIGINT);
+    //endwin();
     /*恢复终端属性*/
     tcsetattr(fileno(stdin), TCSADRAIN, &old_tty_attr);
     exit(stauts);

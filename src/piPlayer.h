@@ -24,6 +24,14 @@ enum player_status {
     PAUSE
 };
 
+enum play_setting {
+    SINGLE_TUNE_CIRCULATION, /*单曲循环*/
+    LOOP_PLAYBACK,           /*循环播放*/
+    ORDER_PLAYBACK,          /*顺序播放*/
+    RANDOM_PLAY              /*随机播放*/
+
+};
+
 enum file_type {
     unknown,
     fifo,

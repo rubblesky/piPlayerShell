@@ -12,7 +12,7 @@
 #include "err.h"
 #include "sort.h"
 
-char *music_file_suffix[] = {"acc", "ACC", "mp3", "MP3", "wav", "WAV"};
+char *music_file_suffix[] = {"aac", "AAC", "mp3", "MP3", "wav", "WAV"};
 static unsigned char const prime_offset[] =
     {
         0, 0, 1, 1, 3, 1, 3, 1, 5, 3, 3, 9, 3, 1, 3, 19, 15, 1, 5, 1, 3, 9, 3,
