@@ -6,15 +6,18 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
+//#include <ncursesw.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
+#include <ncurses.h>
 
 #include "dir.h"
 #include "err.h"
@@ -22,6 +25,8 @@
 #include "terminal.h"
 
 //extern char **environ;
+
+#define PAGE_SONGNUM 10
 
 /*播放列表*/
 struct play_list_info play_list;
@@ -44,6 +49,8 @@ static int change_dirctory(char *dir);
 /*绘制界面*/
 static int
 print_interface();
+void print_in_width_termial(struct winsize *size);
+void print_in_narrow_termial(struct winsize *size);
 /*读取键盘命令*/
 static void *get_cmd(void *arg);
 /*处理方向键*/
@@ -112,7 +119,7 @@ int main(int argc, char *argv[]) {
         }
     }
     /*收到SIGINT信号时执行默认退出程序*/
-    signal(SIGINT, exit_player);
+    signal(SIGINT, exit_player);/*这里还要追加补充其他信号*/
     set_tty_attr();
     pthread_t tidp;
     if (pthread_create(&tidp, NULL, get_cmd, NULL) < 0) {
@@ -166,9 +173,8 @@ static int print_interface() {
     if (read_dir(play_list.music_dir) < 0) {
         return -1;
     }
-
+/*
 #ifndef NDEBUG
-    /*打印排序结果*/
     if (play_list.sort_rule == by_last_modification_time)
         for (int i = 0; i < play_list.file_used_num; i++) {
             printf("%d: %25s  time: %d\n", i + 1, play_list.sorted_file[i]->name, play_list.sorted_file[i]->stat.st_mtime);
@@ -178,9 +184,52 @@ static int print_interface() {
             printf("%d: %s \n", i + 1, play_list.sorted_file[i]->name);
         }
 #endif
+*/
+    struct winsize size;
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &size) < 0) {
+        file_error("ioctl");
+        exit_player(-1);
+    }
+    if(size.ws_col >= 2.3 * size.ws_row){
+#ifndef NDEBUG
+        printf("witdh  %d:%f\n",size.ws_col,size.ws_row*2.3);
+#endif
+        print_in_width_termial(&size);
+    } else {
+#ifndef NDEBUG
+        printf("narrow  %d:%f\n",size.ws_col,size.ws_row*2.3);
+#endif
+        print_in_narrow_termial(&size);
+    }
     play_list.current_choose = 0;
     while (1) {
     }
+}
+
+void print_in_width_termial(struct winsize *size) {
+}
+void print_in_narrow_termial(struct winsize *size) {
+    initscr();
+    cbreak();
+    refresh();
+    int cell_height = size->ws_row / PAGE_SONGNUM;
+
+    attron(A_BOLD);
+    int width = size->ws_col - 6;
+    move(cell_height / 2, 2);
+    //mvprintw(cell_height / 2, 2,"%s", play_list.sorted_file[0]->name);
+    addstr(play_list.sorted_file[0]->name);
+    refresh();
+    attroff(A_BOLD);
+    for (int i = 1; i < PAGE_SONGNUM - 1 && i < play_list.file_used_num /*&&   */; i++) {
+        mvprintw(i * cell_height + cell_height / 2, 2 ,"%s", play_list.sorted_file[i]->name);
+
+        refresh();
+    }
+    refresh();
+
+    getch();
+    endwin();
 }
 
 static void *get_cmd(void *arg) {
@@ -199,6 +248,7 @@ static void *get_cmd(void *arg) {
                 break;
             case 'b':
                 fpipe = play();
+                play_list.current_playing = play_list.current_choose;
                 if (fpipe == NULL) {
                     printf("play fail");
                 }

@@ -69,6 +69,9 @@ struct play_list_info {
 
     /*当前选择的音乐*/
     music_t current_choose;
+    /*当前播放的音乐*/
+    music_t current_playing;
+
 };
 
 extern struct play_list_info play_list;

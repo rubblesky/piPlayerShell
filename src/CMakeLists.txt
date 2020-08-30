@@ -20,4 +20,7 @@ piPlayer
     PUBLIC 
     ${LIB_LIST}
 )
-
+find_package(Curses REQUIRED)
+include_directories( ${NCURSESW_INCLUDE_DIRS} )
+target_link_libraries(piPlayer PRIVATE ${NCURSESW_LIBRARIES})
+set(CMAKE_C_FLAGS "-lncursesw")
