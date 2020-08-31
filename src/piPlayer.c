@@ -72,7 +72,8 @@ static int fork_player_process(pid_t last_song, FILE **fpipe);
 static void launch_player(int fd_pipe[]);
 /*获取播放器状态*/
 void get_player_status(int *last_song);
-
+/*向播放器发送命令*/
+void send_cmd(char *cmd,FILE* fpipe);
 /*获取当前音乐目录*/
 char *get_current_dir();
 
@@ -263,16 +264,13 @@ static void *get_cmd(void *arg) {
                 break;
 
             case '-':
+                send_cmd("/", fpipe);
             case '+':
+                send_cmd("*",fpipe);
             case ' ':
-                if (ps != STOP) {
-                    if (fputc(c, fpipe) == EOF) {
-                        file_error("send command fail\n");
-                    } else {
-                        if (c == ' ')
-                            ps = (ps == PAUSE) ? PLAYING : PAUSE;
-                    }
-                    fflush(fpipe);
+                send_cmd(" ", fpipe);
+                if(ps!=STOP){
+                    ps = (ps == PAUSE) ? PLAYING : PAUSE;
                 }
                 break;
             case 'q':
@@ -348,6 +346,14 @@ void get_player_status(int *last_song) {
     ps = STOP;
 }
 
+void send_cmd(char *cmd, FILE *fpipe) {
+    if (ps != STOP) {
+        if (fprintf(fpipe,"%s",cmd) == EOF) {
+            file_error("send command fail\n");
+        } 
+        fflush(fpipe);
+    }
+}
 static int fork_player_process(pid_t last_song, FILE **fpipe) {
     if (last_song != 0) {
         kill(last_song, SIGINT);
