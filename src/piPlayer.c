@@ -95,7 +95,7 @@ static void print_dir();
         play_list.current_choose--;     \
     }
 
-static char short_opts[] = "std:";
+static char short_opts[] = "astd:";
 static struct option long_opt[] =
     {
         {"directory", required_argument, NULL, 'd'},
@@ -111,6 +111,9 @@ int main(int argc, char *argv[]) {
     while ((opt = getopt_long(argc, argv, short_opts, long_opt, NULL)) != -1) {
         switch (opt) {
             case 0:
+                break;
+            case 'a':
+                show_all_files = true;
                 break;
             case 'd':
                 if(change_dirctory(optarg)<0){
@@ -277,8 +280,7 @@ static void *get_cmd(void *arg) {
                 fpipe = play();
                 play_list.current_playing = play_list.current_choose;
 #ifndef NDEUG
-                print_menu(play_list.sorted_file[play_list.current_playing]->name);
-                print_menu(play_list.music_dir);
+                //print_menu(play_list.sorted_file[play_list.current_playing]->name);
 #endif
                 if (fpipe == NULL) {
                     printf("play fail");
@@ -287,14 +289,22 @@ static void *get_cmd(void *arg) {
 
             case '-':
                 send_cmd("/", fpipe);
+                print_menu("volume -");
                 break;
             case '+':
                 send_cmd("*",fpipe);
+                print_menu("volume +");
                 break;
             case ' ':
                 send_cmd(" ", fpipe);
                 if(ps!=STOP){
                     ps = (ps == PAUSE) ? PLAYING : PAUSE;
+                }
+                if(ps == PAUSE){
+                    print_menu("pause");
+                }
+                else{
+                    print_menu("");
                 }
                 break;
             case 'q':
@@ -356,7 +366,7 @@ static FILE *play() {
         exit(-1);
     }
 #ifndef NDEBUG
-    printf("playing %d\n", play_list.current_choose + 1);
+    //printf("playing %d\n", play_list.current_choose + 1);
 #endif
     return fpipe;
 }
@@ -364,6 +374,7 @@ static FILE *play() {
 void get_player_status(int *last_song) {
     int statloc;
     pid_t p = wait(&statloc);
+    print_menu("stop");
     ps = STOP;
 }
 

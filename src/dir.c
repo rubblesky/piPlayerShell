@@ -98,9 +98,11 @@ static int get_file_info(char *directory_name) {
             break;
         }
     }
-    free_hash_tbale(hash_table);
+    if (!show_all_files) {
+        free_hash_tbale(hash_table);
+    }
     closedir(dir);
-}
+    }
 
 static int add_file(char *file_name) {
     if (strcmp(file_name, ".") == 0) {
