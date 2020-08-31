@@ -188,6 +188,7 @@ static int print_interface() {
     play_list.current_choose = 0;
     print_by_size();
     while (1) {
+        sleep(10);
     }
     endwin();
 }
@@ -390,6 +391,10 @@ void send_cmd(char *cmd, FILE *fpipe) {
 static int fork_player_process(pid_t last_song, FILE **fpipe) {
     if (last_song != 0) {
         kill(last_song, SIGINT);
+    }
+    while(ps != STOP){
+        /*或许还可以少睡一会*/
+        sleep(1);
     }
     int fd[2];
     if (pipe(fd) < 0) {
