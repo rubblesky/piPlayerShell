@@ -209,27 +209,36 @@ void print_in_narrow_termial(struct winsize *size) {
     cbreak();
     player_init_color();
     refresh();
+    clear();
     int cell_height = size->ws_row / PAGE_SONGNUM;
 
     //attron(A_BOLD|COLOR_PAIR(PAIR_CHOOSE));
     int width = size->ws_col - 6;
     move(cell_height / 2, 2);
+    int i;
+    if (play_list.current_choose < PAGE_SONGNUM / 2) {
+        i = 0;
+    } else if (play_list.file_used_num - play_list.current_choose < PAGE_SONGNUM) {
+        i = play_list.file_used_num - PAGE_SONGNUM;
+    } else {
+        i = play_list.current_choose - PAGE_SONGNUM / 2;
+    }
 
-    int i = (play_list.current_choose > 5) ? play_list.current_choose - 5 : 0;
-
-    //mvprintw(cell_height / 2, 2, "%-.*s..." , width, play_list.sorted_file[i]->name);
-    //attroff(A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
-    attron(COLOR_PAIR(PAIR_OTHER));
-    for (; i < PAGE_SONGNUM - 1 && i < play_list.file_used_num /*&&   */; i++) {
+        //mvprintw(cell_height / 2, 2, "%-.*s..." , width, play_list.sorted_file[i]->name);
+        //attroff(A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
+        attron(COLOR_PAIR(PAIR_OTHER));
+    int n = 0;
+    for (; n < PAGE_SONGNUM && i < play_list.file_used_num /*&&   */; i++) {
         if(i == play_list.current_choose){
             attron(A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
-            mvprintw(i * cell_height + cell_height / 2, 2, "%-.*s...", width, play_list.sorted_file[i]->name);
+            mvprintw(n * cell_height + cell_height / 2, 2, "%-.*s...", width, play_list.sorted_file[i]->name);
             attroff(A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
             attron(COLOR_PAIR(PAIR_OTHER));
         }
         else{
-            mvprintw(i * cell_height + cell_height / 2, 2, "%-.*s...", width, play_list.sorted_file[i]->name);
+            mvprintw(n * cell_height + cell_height / 2, 2, "%-.*s...", width, play_list.sorted_file[i]->name);
         }
+        n++;
     }
     refresh();
 }
@@ -258,6 +267,10 @@ static void *get_cmd(void *arg) {
             case 'b':
                 fpipe = play();
                 play_list.current_playing = play_list.current_choose;
+#ifndef NDEUG
+                printf("%s", play_list.sorted_file[play_list.current_playing]->name);
+                printf("%s", play_list.music_dir);
+#endif
                 if (fpipe == NULL) {
                     printf("play fail");
                 }

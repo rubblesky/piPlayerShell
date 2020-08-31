@@ -1,2 +1,2 @@
 //#define _GNU_SOURCE
-#define NDEBUG
+//#define NDEBUG
