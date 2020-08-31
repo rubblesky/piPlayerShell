@@ -278,6 +278,7 @@ static void *get_cmd(void *arg) {
             case '\n':
             case 'b':
                 fpipe = play();
+                print_menu("playing");
                 play_list.current_playing = play_list.current_choose;
 #ifndef NDEUG
                 //print_menu(play_list.sorted_file[play_list.current_playing]->name);
