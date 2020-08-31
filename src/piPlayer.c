@@ -209,7 +209,7 @@ void print_in_narrow_termial(struct winsize *size) {
     cbreak();
     player_init_color();
     refresh();
-    clear();
+//    clear();
     int cell_height = size->ws_row / PAGE_SONGNUM;
 
     //attron(A_BOLD|COLOR_PAIR(PAIR_CHOOSE));
