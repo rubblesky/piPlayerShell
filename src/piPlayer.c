@@ -231,12 +231,12 @@ void print_in_narrow_termial(struct winsize *size) {
     for (; n < PAGE_SONGNUM && i < play_list.file_used_num /*&&   */; i++) {
         if(i == play_list.current_choose){
             attron(A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
-            mvprintw(n * cell_height + cell_height / 2, 2, "%-.*s...", width, play_list.sorted_file[i]->name);
+            mvprintw(n * cell_height + cell_height / 2, 2, "%-*.*s", width, width, play_list.sorted_file[i]->name);
             attroff(A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
             attron(COLOR_PAIR(PAIR_OTHER));
         }
         else{
-            mvprintw(n * cell_height + cell_height / 2, 2, "%-.*s...", width, play_list.sorted_file[i]->name);
+            mvprintw(n * cell_height + cell_height / 2, 2, "%-*.*s", width, width, play_list.sorted_file[i]->name);
         }
         n++;
     }
