@@ -45,7 +45,7 @@ bool show_all_files = 0;
   作为程序结束时恢复终端属性的依据
 */
 static struct termios old_tty_attr;
-
+static WINDOW *menu;
 /*设置终端属性*/
 static void set_tty_attr();
 /*切换目录*/
@@ -58,6 +58,7 @@ void print_by_size();
 void print_in_width_termial(struct winsize *size);
 void print_in_narrow_termial(struct winsize *size);
 void player_init_color();
+void print_menu(char *msg ,...);
 /*读取键盘命令*/
 static void *get_cmd(void *arg);
 /*处理方向键*/
@@ -194,6 +195,7 @@ void print_by_size() {
         exit_player(-1);
     }
     setlocale(LC_ALL, "");
+    
     if (size.ws_col >= 2.3 * size.ws_row) {
         print_in_width_termial(&size);
     } else {
@@ -205,11 +207,13 @@ void print_in_width_termial(struct winsize *size) {
     print_in_narrow_termial(size);
 }
 void print_in_narrow_termial(struct winsize *size) {
-    initscr();
+    WINDOW * ori_window = initscr();
     cbreak();
     player_init_color();
+    menu = subwin(ori_window, 2, size->ws_col, size->ws_row - 2, 0);
+    touchwin(ori_window);
     refresh();
-//    clear();
+    //    clear();
     int cell_height = size->ws_row / PAGE_SONGNUM;
 
     //attron(A_BOLD|COLOR_PAIR(PAIR_CHOOSE));
@@ -219,7 +223,7 @@ void print_in_narrow_termial(struct winsize *size) {
     if (play_list.current_choose < PAGE_SONGNUM / 2) {
         i = 0;
     } else if (play_list.file_used_num - play_list.current_choose < PAGE_SONGNUM) {
-        i = play_list.file_used_num - PAGE_SONGNUM;
+        i = play_list.file_used_num - PAGE_SONGNUM + 1;
     } else {
         i = play_list.current_choose - PAGE_SONGNUM / 2;
     }
@@ -228,7 +232,7 @@ void print_in_narrow_termial(struct winsize *size) {
         //attroff(A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
         attron(COLOR_PAIR(PAIR_OTHER));
     int n = 0;
-    for (; n < PAGE_SONGNUM && i < play_list.file_used_num /*&&   */; i++) {
+    for (; n < PAGE_SONGNUM - 1 && i < play_list.file_used_num /*&&   */; i++) {
         if(i == play_list.current_choose){
             attron(A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
             mvprintw(n * cell_height + cell_height / 2, 2, "%-*.*s", width, width, play_list.sorted_file[i]->name);
@@ -248,7 +252,12 @@ void player_init_color() {
     init_pair(PAIR_CHOOSE, COLOR_WHITE, COLOR_BLUE);
     init_pair(PAIR_OTHER, COLOR_BLACK, COLOR_WHITE);
 }
-
+void print_menu(char *msg,... ) {
+    /*这里要改成可变参数列表*/
+    wclear(menu);
+    wprintw(menu, "%s", msg);
+    wrefresh(menu);
+}
 static void *get_cmd(void *arg) {
     char c;
     FILE *fpipe = NULL;
@@ -268,8 +277,8 @@ static void *get_cmd(void *arg) {
                 fpipe = play();
                 play_list.current_playing = play_list.current_choose;
 #ifndef NDEUG
-                printf("%s", play_list.sorted_file[play_list.current_playing]->name);
-                printf("%s", play_list.music_dir);
+                print_menu(play_list.sorted_file[play_list.current_playing]->name);
+                print_menu(play_list.music_dir);
 #endif
                 if (fpipe == NULL) {
                     printf("play fail");
@@ -287,7 +296,7 @@ static void *get_cmd(void *arg) {
                 }
                 break;
             case 'q':
-                printf("Exit...\n");
+                print_menu("Exit...\n");
                 exit_player(0);
 
             default:
@@ -353,9 +362,6 @@ static FILE *play() {
 void get_player_status(int *last_song) {
     int statloc;
     pid_t p = wait(&statloc);
-#ifndef NDEBUG
-    printf("wait pid :%d  exit stauts : %d\n", p, WEXITSTATUS(statloc));
-#endif
     ps = STOP;
 }
 
