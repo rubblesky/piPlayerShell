@@ -287,8 +287,10 @@ static void *get_cmd(void *arg) {
 
             case '-':
                 send_cmd("/", fpipe);
+                break;
             case '+':
                 send_cmd("*",fpipe);
+                break;
             case ' ':
                 send_cmd(" ", fpipe);
                 if(ps!=STOP){
