@@ -168,7 +168,8 @@ int wait_for_stdin() {
     struct timeval tm;
     tm.tv_sec = 1;
     tm.tv_usec = 0;
-    return select(1, &fdset, NULL, NULL, &tm);
+    //return select(1, &fdset, NULL, NULL, &tm);
+    return select(1, &fdset, NULL, NULL, NULL);
 }
 
 static void *get_cmd(void *arg) {
