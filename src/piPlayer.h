@@ -12,11 +12,19 @@
 /*路径分隔符*/
 #define PATH_SEPARATOR '/'
 
+struct play_list_info *get_play_list();
+void exit_player(int stauts);
+
 /*使用收藏目录*/
 extern bool use_star_dir;
 /*显示非音乐文件*/
 extern bool show_all_files;
 typedef long int music_t;
+
+enum terminal_attr {
+    WIDTH,
+    NARROW
+};
 
 enum player_status {
     PLAYING,
@@ -82,6 +90,6 @@ struct play_list_info {
 
 };
 
-extern struct play_list_info play_list;
+//extern struct play_list_info play_list;
 
 #endif

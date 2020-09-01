@@ -24,14 +24,10 @@
 #include "err.h"
 #include "sort.h"
 #include "terminal.h"
-
+#include "interface.h"
 //extern char **environ;
 
-#define PAGE_SONGNUM 10
-enum pair {
-    PAIR_CHOOSE = 1,
-    PAIR_OTHER
-};
+
 
 /*播放列表*/
 struct play_list_info play_list;
@@ -45,20 +41,15 @@ bool show_all_files = 0;
   作为程序结束时恢复终端属性的依据
 */
 static struct termios old_tty_attr;
-static WINDOW *menu;
-/*设置终端属性*/
-static void set_tty_attr();
+
+struct play_list_info *get_play_list(){
+    return &play_list;
+}
+
 /*切换目录*/
 static int change_dirctory(char *dir);
 
-/*绘制界面*/
-static int
-print_interface();
-void print_by_size();
-void print_in_width_termial(struct winsize *size);
-void print_in_narrow_termial(struct winsize *size);
-void player_init_color();
-void print_menu(char *msg ,...);
+
 /*读取键盘命令*/
 static void *get_cmd(void *arg);
 /*处理方向键*/
@@ -78,10 +69,7 @@ void send_cmd(char *cmd,FILE* fpipe);
 /*获取当前音乐目录*/
 char *get_current_dir();
 
-/*退出程序
-  静态函数 程序必须从主函数文件退出
-*/
-static void exit_player(int stauts);
+void exit_player(int stauts);
 
 /*打印目录*/
 static void print_dir();
@@ -105,7 +93,11 @@ int main(int argc, char *argv[]) {
     /*初始化默认值*/
     play_list.sort_rule = by_name;
     play_list.music_dir = get_current_dir();
+    play_list.file_alloc_num = 100;
+    play_list.file_used_num = 0;
+    play_list.current_choose = 0;
     ps = STOP;
+
     /*读取参数*/
     int opt;
     while ((opt = getopt_long(argc, argv, short_opts, long_opt, NULL)) != -1) {
@@ -132,34 +124,19 @@ int main(int argc, char *argv[]) {
     }
     /*收到SIGINT信号时执行默认退出程序*/
     signal(SIGINT, exit_player);/*这里还要追加补充其他信号*/
-    set_tty_attr();
     pthread_t tidp;
+    if (read_dir(play_list.music_dir) < 0) {
+        return -1;
+    }
+    print_interface();
     if (pthread_create(&tidp, NULL, get_cmd, NULL) < 0) {
 #ifndef NDEBUG
         printf("can't create control pthread\n");
 #endif
         return -1;
     }
-    print_interface();
-}
-
-static void set_tty_attr() {
-    struct termios new_tty_attr;
-    if (tcgetattr(fileno(stdin), &old_tty_attr) < 0) {
-#ifndef NDEBUG
-        printf("can't get tty attribute\n");
-#endif
-        exit_player(-1);
-    }
-    new_tty_attr = old_tty_attr;
-    /*修改模式为非规范模式*/
-    new_tty_attr.c_lflag &= ~ICANON;
-    new_tty_attr.c_lflag &= ~ECHO;
-    if (tcsetattr(fileno(stdin), TCSADRAIN, &new_tty_attr) < 0) {
-#ifndef NDEBUG
-        printf("can't set tty attribute\n");
-#endif
-        exit_player(-1);
+    while (1) {
+        sleep(10);
     }
 }
 
@@ -179,89 +156,9 @@ static int change_dirctory(char *dir) {
     }
 }
 
-static int print_interface() {
-    play_list.file_alloc_num = 100;
-    play_list.file_used_num = 0;
-    if (read_dir(play_list.music_dir) < 0) {
-        return -1;
-    }
-    play_list.current_choose = 0;
-    print_by_size();
-    while (1) {
-        sleep(10);
-    }
-    endwin();
-}
-void print_by_size() {
-    struct winsize size;
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &size) < 0) {
-        file_error("ioctl");
-        exit_player(-1);
-    }
-    setlocale(LC_ALL, "");
-    
-    if (size.ws_col >= 2.3 * size.ws_row) {
-        print_in_width_termial(&size);
-    } else {
-        print_in_narrow_termial(&size);
-    }
 
-}
-void print_in_width_termial(struct winsize *size) {
-    print_in_narrow_termial(size);
-}
-void print_in_narrow_termial(struct winsize *size) {
-    WINDOW * ori_window = initscr();
-    cbreak();
-    player_init_color();
-    menu = subwin(ori_window, 2, size->ws_col, size->ws_row - 2, 0);
-    touchwin(ori_window);
-    refresh();
-    //    clear();
-    int cell_height = size->ws_row / PAGE_SONGNUM;
 
-    //attron(A_BOLD|COLOR_PAIR(PAIR_CHOOSE));
-    int width = size->ws_col - 6;
-    move(cell_height / 2, 2);
-    int i;
-    if (play_list.current_choose < PAGE_SONGNUM / 2) {
-        i = 0;
-    } else if (play_list.file_used_num - play_list.current_choose < PAGE_SONGNUM) {
-        i = play_list.file_used_num - PAGE_SONGNUM + 1;
-    } else {
-        i = play_list.current_choose - PAGE_SONGNUM / 2;
-    }
 
-        //mvprintw(cell_height / 2, 2, "%-.*s..." , width, play_list.sorted_file[i]->name);
-        //attroff(A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
-        attron(COLOR_PAIR(PAIR_OTHER));
-    int n = 0;
-    for (; n < PAGE_SONGNUM - 1 && i < play_list.file_used_num /*&&   */; i++) {
-        if(i == play_list.current_choose){
-            attron(A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
-            mvprintw(n * cell_height + cell_height / 2, 2, "%-*.*s", width, width, play_list.sorted_file[i]->name);
-            attroff(A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
-            attron(COLOR_PAIR(PAIR_OTHER));
-        }
-        else{
-            mvprintw(n * cell_height + cell_height / 2, 2, "%-*.*s", width, width, play_list.sorted_file[i]->name);
-        }
-        n++;
-    }
-    refresh();
-}
-
-void player_init_color() {
-    start_color();
-    init_pair(PAIR_CHOOSE, COLOR_WHITE, COLOR_BLUE);
-    init_pair(PAIR_OTHER, COLOR_BLACK, COLOR_WHITE);
-}
-void print_menu(char *msg,... ) {
-    /*这里要改成可变参数列表*/
-    wclear(menu);
-    wprintw(menu, "%s", msg);
-    wrefresh(menu);
-}
 static void *get_cmd(void *arg) {
     char c;
     FILE *fpipe = NULL;
@@ -471,7 +368,6 @@ void exit_player(int stauts) {
     /*向所有子进程发送终止信号*/
     kill(0, SIGINT);
     //endwin();
-    /*恢复终端属性*/
-    tcsetattr(fileno(stdin), TCSADRAIN, &old_tty_attr);
+    reset_tty_attr();
     exit(stauts);
 }

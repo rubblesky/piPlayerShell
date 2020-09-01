@@ -60,7 +60,7 @@ int read_dir(char *directory_name) {
 static int get_file_info(char *directory_name) {
     DIR *dir = opendir(directory_name);
     struct dirent *next_file;
-
+    struct play_list_info *play_list = get_play_list();
     /*第一次调用要给file开空间*/
     static bool first = true;
 
@@ -70,8 +70,8 @@ static int get_file_info(char *directory_name) {
         return -1;
     }
     if (first) {
-        play_list.file = malloc(play_list.file_alloc_num * sizeof(*play_list.file));
-        play_list.sorted_file = malloc(play_list.file_alloc_num * sizeof(*play_list.sorted_file));
+        play_list->file = malloc(play_list->file_alloc_num * sizeof(*play_list->file));
+        play_list->sorted_file = malloc(play_list->file_alloc_num * sizeof(*play_list->sorted_file));
     }
     struct hash_table *hash_table;
     if (!show_all_files) {
@@ -105,14 +105,16 @@ static int get_file_info(char *directory_name) {
     }
 
 static int add_file(char *file_name) {
+    /*这里要改 开销太大*/
+    struct play_list_info *play_list = get_play_list();
     if (strcmp(file_name, ".") == 0) {
         return 0;
     }
-    if (play_list.file_used_num == play_list.file_alloc_num) {
-        play_list.file_alloc_num *= 2;
-        play_list.file = realloc(play_list.file, play_list.file_alloc_num * sizeof(*play_list.file));
-        play_list.sorted_file = realloc(play_list.sorted_file, play_list.file_alloc_num * sizeof(*play_list.file));
-        if (NULL == play_list.file || NULL == play_list.sorted_file) {
+    if (play_list->file_used_num == play_list->file_alloc_num) {
+        play_list->file_alloc_num *= 2;
+        play_list->file = realloc(play_list->file, play_list->file_alloc_num * sizeof(*play_list->file));
+        play_list->sorted_file = realloc(play_list->sorted_file, play_list->file_alloc_num * sizeof(*play_list->file));
+        if (NULL == play_list->file || NULL == play_list->sorted_file) {
             alloc_error();
             return -1;
         }
@@ -120,13 +122,13 @@ static int add_file(char *file_name) {
 
     assert(strlen(play_list.music_dir) + strlen(file_name) + 1 <= PATHMAX);
     char *file_path = malloc(PATHMAX * sizeof(char *));
-    int dir_size = strlen(play_list.music_dir);
+    int dir_size = strlen(play_list->music_dir);
     int name_size = strlen(file_name);
-    memcpy(file_path, play_list.music_dir, dir_size);
+    memcpy(file_path, play_list->music_dir, dir_size);
     memcpy(file_path + dir_size, file_name, name_size + 1);
 
-    struct file_info *f = &(play_list.file[play_list.file_used_num]);
-    play_list.sorted_file[play_list.file_used_num++] = f;
+    struct file_info *f = &(play_list->file[play_list->file_used_num]);
+    play_list->sorted_file[play_list->file_used_num++] = f;
 
     f->name = malloc(sizeof(char) * (name_size + 2));
     memcpy(f->name, file_name, name_size + 1);
@@ -155,12 +157,13 @@ static int add_file(char *file_name) {
 }
 
 static void sort_file() {
-    switch (play_list.sort_rule) {
+    struct play_list_info *play_list = get_play_list();
+    switch (play_list->sort_rule) {
         case by_name:
-            quick_sort(play_list.sorted_file, 0, play_list.file_used_num - 1, (void (*)(void *, int, int))compare_by_filename, (void (*)(void *, int, int))exchange_file);
+            quick_sort(play_list->sorted_file, 0, play_list->file_used_num - 1, (void (*)(void *, int, int))compare_by_filename, (void (*)(void *, int, int))exchange_file);
             break;
         case by_last_modification_time:
-            quick_sort(play_list.sorted_file, 0, play_list.file_used_num - 1, (void (*)(void *, int, int))compare_by_modification, (void (*)(void *, int, int))exchange_file);
+            quick_sort(play_list->sorted_file, 0, play_list->file_used_num - 1, (void (*)(void *, int, int))compare_by_modification, (void (*)(void *, int, int))exchange_file);
             break;
         default:
             break;
