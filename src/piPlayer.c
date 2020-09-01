@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <locale.h>
 #include <ncursesw/ncurses.h>
 #include <pthread.h>
 #include <signal.h>
@@ -17,17 +18,14 @@
 #include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
-#include <locale.h>
 //#include <ncurses.h>
 
 #include "dir.h"
 #include "err.h"
+#include "interface.h"
 #include "sort.h"
 #include "terminal.h"
-#include "interface.h"
 //extern char **environ;
-
-
 
 /*播放列表*/
 struct play_list_info play_list;
@@ -41,15 +39,18 @@ bool show_all_files = 0;
 /*初始终端设置
   作为程序结束时恢复终端属性的依据
 */
+/*父进程向子进程发送信息的管道*/
+FILE *fpipe = NULL;
 static struct termios old_tty_attr;
 
-struct play_list_info *get_play_list(){
+struct play_list_info *get_play_list() {
     return &play_list;
 }
 
 /*切换目录*/
 static int change_dirctory(char *dir);
-
+/*等待键盘命令*/
+int wait_for_stdin();
 
 /*读取键盘命令*/
 static void *get_cmd(void *arg);
@@ -66,22 +67,23 @@ static void launch_player(int fd_pipe[]);
 /*获取播放器状态*/
 void get_player_status(int *last_song);
 /*向播放器发送命令*/
-void send_cmd(char *cmd,FILE* fpipe);
+void send_cmd(char *cmd, FILE *fpipe);
 /*获取当前音乐目录*/
 char *get_current_dir();
 
 void print_play_setting();
-
+/*播放器收到歌曲结束信号时执行的命令*/
+static void player_stop(int signo);
 void exit_player(int stauts);
 
 /*打印目录*/
 static void print_dir();
 
-#define NEXT_SONG()                                              \
+#define NEXT_SONG()                                               \
     if (play_list.current_choose < play_list.file_used_num - 1) { \
         play_list.current_choose++;                               \
     }
-#define LAST_SONG()                    \
+#define LAST_SONG()                     \
     if (play_list.current_choose > 0) { \
         play_list.current_choose--;     \
     }
@@ -111,7 +113,7 @@ int main(int argc, char *argv[]) {
                 show_all_files = true;
                 break;
             case 'd':
-                if(change_dirctory(optarg)<0){
+                if (change_dirctory(optarg) < 0) {
                     exit_player(-1);
                 }
                 break;
@@ -126,7 +128,7 @@ int main(int argc, char *argv[]) {
         }
     }
     /*收到SIGINT信号时执行默认退出程序*/
-    signal(SIGINT, exit_player);/*这里还要追加补充其他信号*/
+    signal(SIGINT, exit_player); /*这里还要追加补充其他信号*/
     pthread_t tidp;
     if (read_dir(play_list.music_dir) < 0) {
         return -1;
@@ -159,71 +161,77 @@ static int change_dirctory(char *dir) {
     }
 }
 
-
-
+int wait_for_stdin() {
+    fd_set fdset;
+    FD_ZERO(&fdset);
+    FD_SET(fileno(stdin), &fdset);
+    struct timeval tm;
+    tm.tv_sec = 1;
+    tm.tv_usec = 0;
+    return select(1, &fdset, NULL, NULL, &tm);
+}
 
 static void *get_cmd(void *arg) {
     char c;
-    FILE *fpipe = NULL;
-    while ((c = fgetc(stdin)) != EOF) {
-        switch (c) {
-            case 'u':
-                LAST_SONG();
-                break;
-            case 'd':
-                NEXT_SONG();
-                break;
-            case 'p':
-                if (play_setting == RANDOM_PLAY){
-                    play_setting = 0;
-                }
-                else{
-                    play_setting++;
-                }
-                print_play_setting();
-                break;
-            case '\033':
-                deal_arrow_key(fpipe);
-                break;
-            case '\n':
-            case 'b':
-                fpipe = play();
-                print_menu("playing");
-                play_list.current_playing = play_list.current_choose;
-#ifndef NDEUG
-                //print_menu(play_list.sorted_file[play_list.current_playing]->name);
-#endif
-                if (fpipe == NULL) {
-                    printf("play fail");
-                }
-                break;
+    while (1) {
+        if (wait_for_stdin() < 0) {
+            continue;
+        }
+        else if ((c = fgetc(stdin)) != EOF) {
+            switch (c) {
+                case 'u':
+                    LAST_SONG();
+                    break;
+                case 'd':
+                    NEXT_SONG();
+                    break;
+                case 'p':
+                    if (play_setting == RANDOM_PLAY) {
+                        play_setting = 0;
+                    } else {
+                        play_setting++;
+                    }
+                    print_play_setting();
+                    break;
+                case '\033':
+                    deal_arrow_key(fpipe);
+                    break;
+                case '\n':
+                case 'b':
+                    fpipe = play();
+                    print_menu("playing");
+                    play_list.current_playing = play_list.current_choose;
+                    if (fpipe == NULL) {
+                        printf("play fail");
+                    }
+                    break;
 
-            case '-':
-                send_cmd("/", fpipe);
-                print_menu("volume -");
-                break;
-            case '+':
-                send_cmd("*",fpipe);
-                print_menu("volume +");
-                break;
-            case ' ':
-                send_cmd(" ", fpipe);
-                if(ps!=STOP){
-                    ps = (ps == PAUSE) ? PLAYING : PAUSE;
-                }
-                if(ps == PAUSE){
-                    print_menu("pause");
-                }
-                else{
-                    print_menu("");
-                }
-                break;
-            case 'q':
-                print_menu("Exit...\n");
-                exit_player(0);
+                case '-':
+                    send_cmd("/", fpipe);
+                    print_menu("volume -");
+                    break;
+                case '+':
+                    send_cmd("*", fpipe);
+                    print_menu("volume +");
+                    break;
+                case ' ':
+                    send_cmd(" ", fpipe);
+                    if (ps != STOP) {
+                        ps = (ps == PAUSE) ? PLAYING : PAUSE;
+                    }
+                    if (ps == PAUSE) {
+                        print_menu("pause");
+                    } else {
+                        print_menu("");
+                    }
+                    break;
+                case 'q':
+                    print_menu("Exit...\n");
+                    exit_player(0);
 
-            default:
-                break;
+                default:
+                    break;
+            }
         }
     }
 }
@@ -243,7 +251,7 @@ static void deal_arrow_key(FILE *fpipe) {
             case 'B':
                 NEXT_SONG()
                 print_by_size();
-               
+
                 break;
             case 'C':
                 if (ps != STOP)
@@ -287,21 +295,25 @@ void get_player_status(int *last_song) {
     pid_t p = wait(&statloc);
     print_menu("stop");
     ps = STOP;
-    switch (play_setting){
-        case RANDOM_PLAY:
-            play_list.current_choose = rand() % play_list.file_used_num;
-            ungetc('b', stdin);
-            break;
-        default:
-            break;
+    if (WEXITSTATUS(statloc) != 24) {
+        switch (play_setting) {
+            case RANDOM_PLAY:
+                srand(time(NULL));
+                play_list.current_choose = rand() % play_list.file_used_num;
+                print_by_size();
+                ungetc('b', stdin);
+                break;
+            default:
+                break;
+        }
     }
 }
 
 void send_cmd(char *cmd, FILE *fpipe) {
     if (ps != STOP) {
-        if (fprintf(fpipe,"%s",cmd) == EOF) {
+        if (fprintf(fpipe, "%s", cmd) == EOF) {
             file_error("send command fail\n");
-        } 
+        }
         fflush(fpipe);
     }
 }
@@ -309,7 +321,7 @@ static int fork_player_process(pid_t last_song, FILE **fpipe) {
     if (last_song != 0) {
         kill(last_song, SIGINT);
     }
-    while(ps != STOP){
+    while (ps != STOP) {
         /*或许还可以少睡一会*/
         sleep(1);
     }
@@ -334,12 +346,18 @@ static int fork_player_process(pid_t last_song, FILE **fpipe) {
     }
 }
 
+static void player_stop(int signo) {
+    exit(24);
+    /*24是一个随便的数
+    为了不冲突*/
+}
+
 static void launch_player(int fd_pipe[]) {
 #ifndef NDEBUG
     printf("child pid:%d\n", getpid());
 #endif
     /*子进程恢复对SIGINT信号的处理*/
-    signal(SIGINT, SIG_DFL);
+    signal(SIGINT, player_stop);
     /*关闭输出流 使之不显示*/
     int err_copy = dup(STDERR_FILENO);
     FILE *ferr = fdopen(err_copy, "w");

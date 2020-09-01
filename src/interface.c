@@ -116,7 +116,7 @@ void print_list(struct play_list_info *play_list){
             mvwprintw(list, n * cell_height + cell_height / 2, 2, "%-*.*s", width, width, play_list->sorted_file[i]->name);
         }
         n++;
-        wrefresh(list);
+        //wrefresh(list);
     }
     wrefresh(list);
 }
@@ -138,6 +138,8 @@ static void set_tty_attr() {
     /*修改模式为非规范模式*/
     new_tty_attr.c_lflag &= ~ICANON;
     new_tty_attr.c_lflag &= ~ECHO;
+    new_tty_attr.c_cc[VTIME] = 0;
+    new_tty_attr.c_cc[VMIN] = 0;
     if (tcsetattr(fileno(stdin), TCSADRAIN, &new_tty_attr) < 0) {
 #ifndef NDEBUG
         printf("can't set tty attribute\n");
