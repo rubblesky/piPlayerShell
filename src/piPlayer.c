@@ -30,6 +30,8 @@
 /*播放列表*/
 struct play_list_info play_list;
 enum play_setting play_setting;
+/*歌曲结束*/
+bool is_end;
 /*播放器状态*/
 enum player_status ps;
 /*使用收藏目录*/
@@ -103,6 +105,7 @@ int main(int argc, char *argv[]) {
     play_list.current_choose = 0;
     ps = STOP;
     play_setting = SINGLE_PLAY;
+    is_end = 1;
     /*读取参数*/
     int opt;
     while ((opt = getopt_long(argc, argv, short_opts, long_opt, NULL)) != -1) {
@@ -166,72 +169,76 @@ int wait_for_stdin() {
     FD_ZERO(&fdset);
     FD_SET(fileno(stdin), &fdset);
     struct timeval tm;
-    tm.tv_sec = 1;
+    tm.tv_sec = 5;
     tm.tv_usec = 0;
-    //return select(1, &fdset, NULL, NULL, &tm);
-    return select(1, &fdset, NULL, NULL, NULL);
+    return select(1, &fdset, NULL, NULL, &tm);
+    //return select(1, &fdset, NULL, NULL, NULL);
 }
 
 static void *get_cmd(void *arg) {
     char c;
+    int is_stdin_in;
     while (1) {
-        if (wait_for_stdin() < 0) {
+        if ((is_stdin_in = wait_for_stdin()) < 0) {
+            file_error("select");
             continue;
-        }
-        else if ((c = fgetc(stdin)) != EOF) {
-            switch (c) {
-                case 'u':
-                    LAST_SONG();
-                    break;
-                case 'd':
-                    NEXT_SONG();
-                    break;
-                case 'p':
-                    if (play_setting == RANDOM_PLAY) {
-                        play_setting = 0;
-                    } else {
-                        play_setting++;
-                    }
-                    print_play_setting();
-                    break;
-                case '\033':
-                    deal_arrow_key(fpipe);
-                    break;
-                case '\n':
-                case 'b':
-                    fpipe = play();
-                    print_menu("playing");
-                    play_list.current_playing = play_list.current_choose;
-                    if (fpipe == NULL) {
-                        printf("play fail");
-                    }
-                    break;
+        } 
+        else if ((is_stdin_in == 0 && is_end) || is_stdin_in > 0) {
+            if ((c = fgetc(stdin)) != EOF) {
+                    switch (c) {
+                        case 'u':
+                            LAST_SONG();
+                            break;
+                        case 'd':
+                            NEXT_SONG();
+                            break;
+                        case 'p':
+                            if (play_setting == RANDOM_PLAY) {
+                                play_setting = 0;
+                            } else {
+                                play_setting++;
+                            }
+                            print_play_setting();
+                            break;
+                        case '\033':
+                            deal_arrow_key(fpipe);
+                            break;
+                        case '\n':
+                        case 'b':
+                            fpipe = play();
+                            print_menu("playing");
+                            play_list.current_playing = play_list.current_choose;
+                            if (fpipe == NULL) {
+                                printf("play fail");
+                            }
+                            break;
 
-                case '-':
-                    send_cmd("/", fpipe);
-                    print_menu("volume -");
-                    break;
-                case '+':
-                    send_cmd("*", fpipe);
-                    print_menu("volume +");
-                    break;
-                case ' ':
-                    send_cmd(" ", fpipe);
-                    if (ps != STOP) {
-                        ps = (ps == PAUSE) ? PLAYING : PAUSE;
-                    }
-                    if (ps == PAUSE) {
-                        print_menu("pause");
-                    } else {
-                        print_menu("");
-                    }
-                    break;
-                case 'q':
-                    print_menu("Exit...\n");
-                    exit_player(0);
+                        case '-':
+                            send_cmd("/", fpipe);
+                            print_menu("volume -");
+                            break;
+                        case '+':
+                            send_cmd("*", fpipe);
+                            print_menu("volume +");
+                            break;
+                        case ' ':
+                            send_cmd(" ", fpipe);
+                            if (ps != STOP) {
+                                ps = (ps == PAUSE) ? PLAYING : PAUSE;
+                            }
+                            if (ps == PAUSE) {
+                                print_menu("pause");
+                            } else {
+                                print_menu("");
+                            }
+                            break;
+                        case 'q':
+                            print_menu("Exit...\n");
+                            exit_player(0);
 
-                default:
-                    break;
+                        default:
+                            break;
+                    }
             }
         }
     }
@@ -302,6 +309,7 @@ void get_player_status(int *last_song) {
                 srand(time(NULL));
                 play_list.current_choose = rand() % play_list.file_used_num;
                 print_by_size();
+                is_end = 1;
                 ungetc('b', stdin);
                 break;
             default:
@@ -326,6 +334,7 @@ static int fork_player_process(pid_t last_song, FILE **fpipe) {
         /*或许还可以少睡一会*/
         sleep(1);
     }
+    is_end = 0;
     int fd[2];
     if (pipe(fd) < 0) {
         file_error("pipe error");
@@ -334,6 +343,7 @@ static int fork_player_process(pid_t last_song, FILE **fpipe) {
     pid_t pid;
     if ((pid = fork()) < 0) {
         sys_error("fork error");
+        is_end = 1;
         return -1;
     } else if (pid != 0) {
         /*父进程*/
