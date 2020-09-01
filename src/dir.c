@@ -70,8 +70,8 @@ static int get_file_info(char *directory_name) {
         return -1;
     }
     if (first) {
-        play_list->file = malloc(play_list->file_alloc_num * sizeof(*play_list->file));
-        play_list->sorted_file = malloc(play_list->file_alloc_num * sizeof(*play_list->sorted_file));
+        play_list->file = malloc(play_list->file_alloc_num * sizeof(*(play_list->file)));
+        //play_list->sorted_file = malloc(play_list->file_alloc_num * sizeof(*(play_list->sorted_file)));
     }
     struct hash_table *hash_table;
     if (!show_all_files) {
@@ -112,12 +112,23 @@ static int add_file(char *file_name) {
     }
     if (play_list->file_used_num == play_list->file_alloc_num) {
         play_list->file_alloc_num *= 2;
-        play_list->file = realloc(play_list->file, play_list->file_alloc_num * sizeof(*play_list->file));
-        play_list->sorted_file = realloc(play_list->sorted_file, play_list->file_alloc_num * sizeof(*play_list->file));
-        if (NULL == play_list->file || NULL == play_list->sorted_file) {
+        struct file_info *new_file_ptr = realloc(play_list->file, play_list->file_alloc_num * sizeof(struct file_info));
+        if(new_file_ptr == NULL){
             alloc_error();
             return -1;
         }
+        else{
+            play_list->file = new_file_ptr;
+        }
+        /*
+        struct file_info **new_sorted_file_ptr = realloc(play_list->sorted_file, play_list->file_alloc_num * sizeof(struct file_info *));
+        if(new_sorted_file_ptr == NULL){
+            alloc_error();
+            return -1;
+        }
+        else{
+            play_list->sorted_file = new_sorted_file_ptr;
+        }*/
     }
 
     assert(strlen(play_list.music_dir) + strlen(file_name) + 1 <= PATHMAX);
@@ -128,8 +139,8 @@ static int add_file(char *file_name) {
     memcpy(file_path + dir_size, file_name, name_size + 1);
 
     struct file_info *f = &(play_list->file[play_list->file_used_num]);
-    play_list->sorted_file[play_list->file_used_num++] = f;
-
+    //play_list->sorted_file[play_list->file_used_num++] = f;
+    play_list->file_used_num++;
     f->name = malloc(sizeof(char) * (name_size + 2));
     memcpy(f->name, file_name, name_size + 1);
 
@@ -158,16 +169,24 @@ static int add_file(char *file_name) {
 
 static void sort_file() {
     struct play_list_info *play_list = get_play_list();
-    switch (play_list->sort_rule) {
-        case by_name:
-            quick_sort(play_list->sorted_file, 0, play_list->file_used_num - 1, (void (*)(void *, int, int))compare_by_filename, (void (*)(void *, int, int))exchange_file);
-            break;
-        case by_last_modification_time:
-            quick_sort(play_list->sorted_file, 0, play_list->file_used_num - 1, (void (*)(void *, int, int))compare_by_modification, (void (*)(void *, int, int))exchange_file);
-            break;
-        default:
-            break;
+    play_list->sorted_file = malloc(play_list->file_alloc_num * sizeof(*(play_list->sorted_file)));
+    if(play_list->sorted_file == NULL){
+        alloc_error("malloc sorted file");
+        exit(-1);
     }
+    for (int i = 0; i < play_list->file_used_num;i++){
+        play_list->sorted_file[i] = &(play_list->file[i]);
+    }
+        switch (play_list->sort_rule) {
+            case by_name:
+                quick_sort(play_list->sorted_file, 0, play_list->file_used_num - 1, (void (*)(void *, int, int))compare_by_filename, (void (*)(void *, int, int))exchange_file);
+                break;
+            case by_last_modification_time:
+                quick_sort(play_list->sorted_file, 0, play_list->file_used_num - 1, (void (*)(void *, int, int))compare_by_modification, (void (*)(void *, int, int))exchange_file);
+                break;
+            default:
+                break;
+        }
     return;
 }
 
