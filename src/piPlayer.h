@@ -33,6 +33,7 @@ enum player_status {
 };
 
 enum play_setting {
+    SINGLE_PLAY,            /*单曲播放*/
     SINGLE_TUNE_CIRCULATION, /*单曲循环*/
     LOOP_PLAYBACK,           /*循环播放*/
     ORDER_PLAYBACK,          /*顺序播放*/

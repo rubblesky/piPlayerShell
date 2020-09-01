@@ -31,6 +31,7 @@
 
 /*播放列表*/
 struct play_list_info play_list;
+enum play_setting play_setting;
 /*播放器状态*/
 enum player_status ps;
 /*使用收藏目录*/
@@ -69,6 +70,8 @@ void send_cmd(char *cmd,FILE* fpipe);
 /*获取当前音乐目录*/
 char *get_current_dir();
 
+void print_play_setting();
+
 void exit_player(int stauts);
 
 /*打印目录*/
@@ -97,7 +100,7 @@ int main(int argc, char *argv[]) {
     play_list.file_used_num = 0;
     play_list.current_choose = 0;
     ps = STOP;
-
+    play_setting = SINGLE_PLAY;
     /*读取参数*/
     int opt;
     while ((opt = getopt_long(argc, argv, short_opts, long_opt, NULL)) != -1) {
@@ -169,6 +172,15 @@ static void *get_cmd(void *arg) {
                 break;
             case 'd':
                 NEXT_SONG();
+                break;
+            case 'p':
+                if (play_setting == RANDOM_PLAY){
+                    play_setting = 0;
+                }
+                else{
+                    play_setting++;
+                }
+                print_play_setting();
                 break;
             case '\033':
                 deal_arrow_key(fpipe);
@@ -275,6 +287,14 @@ void get_player_status(int *last_song) {
     pid_t p = wait(&statloc);
     print_menu("stop");
     ps = STOP;
+    switch (play_setting){
+        case RANDOM_PLAY:
+            play_list.current_choose = rand() % play_list.file_used_num;
+            ungetc('b', stdin);
+            break;
+        default:
+            break;
+    }
 }
 
 void send_cmd(char *cmd, FILE *fpipe) {
@@ -356,6 +376,28 @@ char *get_current_dir() {
     dir[size++] = '/';
     dir[size] = '\0';
     return dir;
+}
+
+void print_play_setting() {
+    switch (play_setting) {
+        case SINGLE_PLAY:
+            print_menu("单曲播放");
+            break;
+        case SINGLE_TUNE_CIRCULATION:
+            print_menu("单曲循环");
+            break;
+        case LOOP_PLAYBACK:
+            print_menu("循环播放");
+            break;
+        case ORDER_PLAYBACK:
+            print_menu("顺序播放");
+            break;
+        case RANDOM_PLAY:
+            print_menu("随机播放");
+            break;
+        default:
+            break;
+    }
 }
 
 static void print_dir() {
