@@ -184,7 +184,7 @@ static void *get_cmd(void *arg) {
         if ((is_stdin_in = wait_for_stdin()) < 0) {
             file_error("select");
             continue;
-        } else if ((!is_stdin_in && is_end && ps == STOP)||  is_stdin_in > 0) {
+        } else if ((!is_stdin_in /*&& is_end*/ && ps == STOP)||  is_stdin_in > 0) {
             if ((c = fgetc(stdin)) != EOF) {
                     switch (c) {
                         case 'u':
