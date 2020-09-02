@@ -273,7 +273,7 @@ static void deal_arrow_key(FILE *fpipe) {
 }
 
 static FILE *play() {
-    print_menu("playing");
+    
     play_list.current_playing = play_list.current_choose;
     static pid_t last_song = 0;
     static pthread_t tidp;
@@ -337,7 +337,7 @@ static int fork_player_process(pid_t last_song, FILE **fpipe) {
         /*或许还可以少睡一会*/
         sleep(1);
     }
-
+    print_menu("playing");
     int fd[2];
     if (pipe(fd) < 0) {
         file_error("pipe error");
