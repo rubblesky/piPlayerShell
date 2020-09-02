@@ -305,10 +305,9 @@ void get_player_status(int *last_song) {
     pid_t p = wait(&statloc);
     print_menu("stop");
     ps = STOP;
-    int exit_num = WEXITSTATUS(statloc);
-    print_menu("exit %d", exit_num);
-    if (exit_num != 24) {
-        is_end = 1;
+    //int exit_num = WEXITSTATUS(statloc);
+    //print_menu("exit %d", exit_num);
+    if (is_end == 1) {
         switch (play_setting) {
             case RANDOM_PLAY:
                 srand(time(NULL));
@@ -332,13 +331,17 @@ void send_cmd(char *cmd, FILE *fpipe) {
 }
 static int fork_player_process(pid_t last_song, FILE **fpipe) {
     if (last_song != 0) {
+        if (ps != STOP) {
+            is_end = 0;
+        } else {
+            is_end = 1;
+        }
         kill(last_song, SIGINT);
     }
     while (ps != STOP) {
         /*或许还可以少睡一会*/
         sleep(1);
     }
-    is_end = 0;
     int fd[2];
     if (pipe(fd) < 0) {
         file_error("pipe error");
