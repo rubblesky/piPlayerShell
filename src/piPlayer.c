@@ -33,6 +33,8 @@ struct play_list_info play_list;
 enum play_setting play_setting;
 /*歌曲结束*/
 bool is_end;
+/*是否播放下一首*/
+bool is_play_next;
 /*播放器状态*/
 enum player_status ps;
 /*使用收藏目录*/
@@ -185,7 +187,8 @@ static void *get_cmd(void *arg) {
             file_error("select");
             continue;
         } 
-        else if ((is_stdin_in == 0 && is_end) || is_stdin_in > 0) {
+        else if ((!is_stdin_in && is_play_next) || is_stdin_in > 0) {
+            is_play_next = 0;
             if ((c = fgetc(stdin)) != EOF) {
                     switch (c) {
                         case 'u':
@@ -303,22 +306,23 @@ static FILE *play() {
 void get_player_status(int *last_song) {
     int statloc;
     pid_t p = wait(&statloc);
-    print_menu("stop");
-    ps = STOP;
     //int exit_num = WEXITSTATUS(statloc);
     //print_menu("exit %d", exit_num);
-    if (is_end == 1) {
+    if (is_end) {
         switch (play_setting) {
             case RANDOM_PLAY:
                 srand(time(NULL));
                 play_list.current_choose = rand() % play_list.file_used_num;
                 print_list(&play_list);
                 ungetc('b', stdin);
+                is_play_next = 1;
                 break;
             default:
                 break;
         }
     }
+    print_menu("stop");
+    ps = STOP;
 }
 
 void send_cmd(char *cmd, FILE *fpipe) {
@@ -342,6 +346,7 @@ static int fork_player_process(pid_t last_song, FILE **fpipe) {
         /*或许还可以少睡一会*/
         sleep(1);
     }
+    is_end = 0;
     int fd[2];
     if (pipe(fd) < 0) {
         file_error("pipe error");
