@@ -33,8 +33,6 @@ struct play_list_info play_list;
 enum play_setting play_setting;
 /*歌曲结束*/
 bool is_end;
-/*是否播放下一首*/
-bool is_play_next;
 /*播放器状态*/
 enum player_status ps;
 /*使用收藏目录*/
@@ -173,7 +171,7 @@ int wait_for_stdin() {
     FD_ZERO(&fdset);
     FD_SET(fileno(stdin), &fdset);
     struct timeval tm;
-    tm.tv_sec = 1;
+    tm.tv_sec = 3;
     tm.tv_usec = 0;
     return select(1, &fdset, NULL, NULL, &tm);
     //return select(1, &fdset, NULL, NULL, NULL);
@@ -186,9 +184,7 @@ static void *get_cmd(void *arg) {
         if ((is_stdin_in = wait_for_stdin()) < 0) {
             file_error("select");
             continue;
-        } 
-        else if ((!is_stdin_in && is_play_next) || is_stdin_in > 0) {
-            is_play_next = 0;
+        } else if ((!is_stdin_in && is_end && ps == STOP)||  is_stdin_in > 0) {
             if ((c = fgetc(stdin)) != EOF) {
                     switch (c) {
                         case 'u':
@@ -211,11 +207,6 @@ static void *get_cmd(void *arg) {
                         case '\n':
                         case 'b':
                             fpipe = play();
-                            print_menu("playing");
-                            play_list.current_playing = play_list.current_choose;
-                            if (fpipe == NULL) {
-                                printf("play fail");
-                            }
                             break;
 
                         case '-':
@@ -282,25 +273,26 @@ static void deal_arrow_key(FILE *fpipe) {
 }
 
 static FILE *play() {
+    print_menu("playing");
+    play_list.current_playing = play_list.current_choose;
     static pid_t last_song = 0;
     static pthread_t tidp;
     FILE *fpipe = NULL;
     if ((last_song = fork_player_process(last_song, &fpipe)) == -1) {
         ps = STOP;
+        print_menu("play fail");
         return NULL;
     } else {
         ps = PLAYING;
+        /*监视进程子结束的线程*/
+        int error_num;
+        if ((error_num = pthread_create(&tidp, NULL, (void *(*)(void *))get_player_status, &last_song)) < 0) {
+            fprintf(stderr, strerror(error_num));
+            exit(-1);
+        }
+        return fpipe;
     }
-    /*监视进程子结束的线程*/
-    int error_num;
-    if ((error_num = pthread_create(&tidp, NULL, (void *(*)(void *))get_player_status, &last_song)) < 0) {
-        fprintf(stderr, strerror(error_num));
-        exit(-1);
-    }
-#ifndef NDEBUG
-    //printf("playing %d\n", play_list.current_choose + 1);
-#endif
-    return fpipe;
+
 }
 
 void get_player_status(int *last_song) {
@@ -315,7 +307,6 @@ void get_player_status(int *last_song) {
                 play_list.current_choose = rand() % play_list.file_used_num;
                 print_list(&play_list);
                 ungetc('b', stdin);
-                is_play_next = 1;
                 break;
             default:
                 break;
@@ -346,7 +337,7 @@ static int fork_player_process(pid_t last_song, FILE **fpipe) {
         /*或许还可以少睡一会*/
         sleep(1);
     }
-    is_end = 0;
+
     int fd[2];
     if (pipe(fd) < 0) {
         file_error("pipe error");
