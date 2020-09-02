@@ -16,6 +16,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
+#include <sys/select.h>
 #include <termios.h>
 #include <unistd.h>
 //#include <ncurses.h>
@@ -132,6 +133,7 @@ int main(int argc, char *argv[]) {
     }
     /*收到SIGINT信号时执行默认退出程序*/
     signal(SIGINT, exit_player); /*这里还要追加补充其他信号*/
+    signal(SIGWINCH, print_by_size);
     pthread_t tidp;
     if (read_dir(play_list.music_dir) < 0) {
         return -1;
@@ -169,7 +171,7 @@ int wait_for_stdin() {
     FD_ZERO(&fdset);
     FD_SET(fileno(stdin), &fdset);
     struct timeval tm;
-    tm.tv_sec = 5;
+    tm.tv_sec = 1;
     tm.tv_usec = 0;
     return select(1, &fdset, NULL, NULL, &tm);
     //return select(1, &fdset, NULL, NULL, NULL);
@@ -254,11 +256,11 @@ static void deal_arrow_key(FILE *fpipe) {
         switch (c) {
             case 'A':
                 LAST_SONG()
-                print_by_size();
+                print_list(&play_list);
                 break;
             case 'B':
                 NEXT_SONG()
-                print_by_size();
+                print_list(&play_list);
 
                 break;
             case 'C':
@@ -303,13 +305,15 @@ void get_player_status(int *last_song) {
     pid_t p = wait(&statloc);
     print_menu("stop");
     ps = STOP;
-    if (WEXITSTATUS(statloc) != 24) {
+    int exit_num = WEXITSTATUS(statloc);
+    print_menu("exit %d", exit_num);
+    if (exit_num != 24) {
+        is_end = 1;
         switch (play_setting) {
             case RANDOM_PLAY:
                 srand(time(NULL));
                 play_list.current_choose = rand() % play_list.file_used_num;
-                print_by_size();
-                is_end = 1;
+                print_list(&play_list);
                 ungetc('b', stdin);
                 break;
             default:
