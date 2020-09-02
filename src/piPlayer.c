@@ -312,6 +312,7 @@ void get_player_status(int *last_song) {
                 break;
         }
     }
+    is_end = 1;
     print_menu("stop");
     ps = STOP;
 }
