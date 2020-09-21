@@ -28,10 +28,10 @@ struct hash_table {
 };
 
 /*获取目录下文件信息*/
-static int
+static struct file_info *
 get_file_info(char *directory_name);
 /*向文件列表中添加读取到的文件*/
-static int add_file(char *file_name);
+static int add_file(char *file_name,struct file_list* file_list);
 /*文件排序*/
 static void sort_file();
 /*交换文件结构位置*/
@@ -57,43 +57,40 @@ int read_dir(char *directory_name) {
     sort_file();
 }
 
-static int get_file_info(char *directory_name) {
+static struct file_info *get_file_info(char *directory_name) {
     DIR *dir = opendir(directory_name);
     struct dirent *next_file;
-    struct play_list_info *play_list = get_play_list();
+    struct file_list *file_list = get_file_list();
     /*第一次调用要给file开空间*/
     static bool first = true;
 
     errno = 0;
     if (NULL == dir) {
         file_error("open dir fail");
-        return -1;
+        return NULL;
     }
     if (first) {
-        play_list->file = malloc(play_list->file_alloc_num * sizeof(*(play_list->file)));
-        //play_list->sorted_file = malloc(play_list->file_alloc_num * sizeof(*(play_list->sorted_file)));
+        file_list->file = malloc(file_list->file_alloc_num * sizeof(*(file_list->file)));
     }
     struct hash_table *hash_table;
     if (!show_all_files) {
-        hash_table  = get_hash_table();
+        hash_table = get_hash_table();
     }
     while (1) {
         errno = 0;
         if (NULL != (next_file = readdir(dir))) {
-            if(!show_all_files){
-                if(is_music(next_file->d_name,hash_table)){
-                    add_file(next_file->d_name);
-                }
-                else{
+            if (!show_all_files) {
+                if (is_music(next_file->d_name, hash_table)) {
+                    add_file(next_file->d_name,file_list);
+                } else {
                     continue;
                 }
-            }
-            else{
-                add_file(next_file->d_name);
+            } else {
+                add_file(next_file->d_name,file_list);
             }
         } else if (errno != 0) {
             file_error("read dir fail");
-            return -1;
+            return NULL;
         } else {
             break;
         }
@@ -102,45 +99,38 @@ static int get_file_info(char *directory_name) {
         free_hash_tbale(hash_table);
     }
     closedir(dir);
-    }
+}
 
-static int add_file(char *file_name) {
+static int add_file(char *file_name, struct file_list* file_list) {
     /*这里要改 开销太大*/
     struct play_list_info *play_list = get_play_list();
     if (strcmp(file_name, ".") == 0) {
         return 0;
     }
-    if (play_list->file_used_num == play_list->file_alloc_num) {
-        play_list->file_alloc_num *= 2;
-        struct file_info *new_file_ptr = realloc(play_list->file, play_list->file_alloc_num * sizeof(struct file_info));
-        if(new_file_ptr == NULL){
+    if (file_list->file_used_num == file_list->file_alloc_num) {
+        file_list->file_alloc_num *= 2;
+
+        struct file_info *new_file_ptr = realloc(file_list->file, file_list->file_alloc_num * sizeof(struct file_info));
+        if (new_file_ptr == NULL) {
             alloc_error();
             return -1;
+        } else {
+            file_list->file = new_file_ptr;
         }
-        else{
-            play_list->file = new_file_ptr;
-        }
-        /*
-        struct file_info **new_sorted_file_ptr = realloc(play_list->sorted_file, play_list->file_alloc_num * sizeof(struct file_info *));
-        if(new_sorted_file_ptr == NULL){
-            alloc_error();
-            return -1;
-        }
-        else{
-            play_list->sorted_file = new_sorted_file_ptr;
-        }*/
+
     }
 
     assert(strlen(play_list.music_dir) + strlen(file_name) + 1 <= PATHMAX);
     char *file_path = malloc(PATHMAX * sizeof(char *));
     int dir_size = strlen(play_list->music_dir);
+    /*这里还用到了play——list*/
     int name_size = strlen(file_name);
     memcpy(file_path, play_list->music_dir, dir_size);
     memcpy(file_path + dir_size, file_name, name_size + 1);
 
-    struct file_info *f = &(play_list->file[play_list->file_used_num]);
+    struct file_info *f = &(file_list->file[file_list->file_used_num]);
     //play_list->sorted_file[play_list->file_used_num++] = f;
-    play_list->file_used_num++;
+    file_list->file_used_num++;
     f->name = malloc(sizeof(char) * (name_size + 2));
     memcpy(f->name, file_name, name_size + 1);
 
@@ -164,29 +154,28 @@ static int add_file(char *file_name) {
     free(file_path);
     return 0;
 
-    //f->name = malloc(name_size + 1);
 }
 
 static void sort_file() {
-    struct play_list_info *play_list = get_play_list();
-    play_list->sorted_file = malloc(play_list->file_alloc_num * sizeof(*(play_list->sorted_file)));
-    if(play_list->sorted_file == NULL){
+    struct file_list *file_list = get_file_list();
+    file_list->sorted_file = malloc(file_list->file_alloc_num * sizeof(*(file_list->sorted_file)));
+    if (file_list->sorted_file == NULL) {
         alloc_error("malloc sorted file");
         exit(-1);
     }
-    for (int i = 0; i < play_list->file_used_num;i++){
-        play_list->sorted_file[i] = &(play_list->file[i]);
+    for (int i = 0; i < file_list->file_used_num; i++) {
+        file_list->sorted_file[i] = &(file_list->file[i]);
     }
-        switch (play_list->sort_rule) {
-            case by_name:
-                quick_sort(play_list->sorted_file, 0, play_list->file_used_num - 1, (void (*)(void *, int, int))compare_by_filename, (void (*)(void *, int, int))exchange_file);
-                break;
-            case by_last_modification_time:
-                quick_sort(play_list->sorted_file, 0, play_list->file_used_num - 1, (void (*)(void *, int, int))compare_by_modification, (void (*)(void *, int, int))exchange_file);
-                break;
-            default:
-                break;
-        }
+    switch (file_list->sort_rule) {
+        case by_name:
+            quick_sort(file_list->sorted_file, 0, file_list->file_used_num - 1, (void (*)(void *, int, int))compare_by_filename, (void (*)(void *, int, int))exchange_file);
+            break;
+        case by_last_modification_time:
+            quick_sort(file_list->sorted_file, 0, file_list->file_used_num - 1, (void (*)(void *, int, int))compare_by_modification, (void (*)(void *, int, int))exchange_file);
+            break;
+        default:
+            break;
+    }
     return;
 }
 
@@ -244,9 +233,9 @@ int compare_by_modification(struct file_info **file, int pos1, int pos2) {
     }
 #endif
 }
-long hash_suffix (char *filename) {
+long hash_suffix(char *filename) {
     long hash = 0;
-    for (int i = strlen(filename)-1; filename[i] != '.' && i >= 0; i--) {
+    for (int i = strlen(filename) - 1; filename[i] != '.' && i >= 0; i--) {
         hash += filename[i];
         hash <<= 7;
     }
@@ -257,10 +246,10 @@ struct hash_table *get_hash_table() {
     for (i = 2; (size_t)1 << i < suffix_size / 3; i++)
         continue;
     int nbuckets = ((size_t)1 << i) - prime_offset[i];
-    int *buckets = calloc(nbuckets,sizeof(int));
+    int *buckets = calloc(nbuckets, sizeof(int));
     if (buckets == NULL) {
         alloc_error();
-        exit(-1); 
+        exit(-1);
     }
     long(*eqs)[2] = calloc(suffix_size + 1, sizeof(eqs[2]));
     if (eqs == NULL) {
@@ -284,7 +273,7 @@ struct hash_table *get_hash_table() {
         }
     }
     struct hash_table *hash_table = malloc(sizeof(*hash_table));
-    if(hash_table == NULL){
+    if (hash_table == NULL) {
         alloc_error();
         exit(-1);
     }
@@ -302,7 +291,7 @@ static bool is_music(char *filename, struct hash_table *hash_table) {
     long hash = hash_suffix(filename);
     int i = hash_table->buckets[hash % hash_table->nbuckets];
     do {
-        if(hash_table->eqs[i][1] == hash){
+        if (hash_table->eqs[i][1] == hash) {
             /*hash值相同基本可以确定相同了
               这里不再进行字符串比对了
             */
@@ -312,8 +301,7 @@ static bool is_music(char *filename, struct hash_table *hash_table) {
     } while (hash_table->eqs[i][0] != 0);
     if (hash_table->eqs[i][1] == hash) {
         return true;
-    }
-    else{
-        return false;    
+    } else {
+        return false;
     }
 }

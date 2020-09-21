@@ -13,6 +13,8 @@
 #define PATH_SEPARATOR '/'
 
 struct play_list_info *get_play_list();
+/*获取playlist.file_list*/
+struct file_list *get_file_list();
 void exit_player(int stauts);
 
 /*使用收藏目录*/
@@ -66,23 +68,38 @@ enum sort_rule {
     by_last_modification_time
 };
 
-/*播放列表信息*/
-struct play_list_info {
-    /*音乐文件夹名*/
-    char *music_dir;
+struct file_list{
     /*文件数组*/
     struct file_info *file;
     /*排序方式*/
     enum sort_rule sort_rule;
     /*排序之后的文件数组*/
     struct file_info **sorted_file;
-
     /*文件名数组的分配大小*/
     music_t file_alloc_num;
     /*文件名数组有效数据大小
     相应下标应该-1
     */
     music_t file_used_num;
+};
+
+
+struct play_list_file{
+    struct file_info **file;
+    struct play_list_file *next_file;
+};
+
+/*播放列表信息*/
+struct play_list_info {
+    /*音乐文件夹名*/
+    char *music_dir;
+    /*文件列表*/
+    struct file_list file_list;
+
+    /*播放列表*/
+    struct play_list_file *play_list_file;
+    /*列表中音乐数量*/
+    music_t music_num;
 
     /*当前选择的音乐*/
     music_t current_choose;

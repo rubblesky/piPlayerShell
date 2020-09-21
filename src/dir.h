@@ -5,7 +5,7 @@
 /*主要函数，读取文件目录并排序*/
 int read_dir(char *directory_name);
 /*获取目录下文件信息*/
-static int get_file_info(char *directory_name);
+static struct file_info *get_file_info(char *directory_name);
 /*文件排序*/
 static void sort_file();
 /*交换文件结构位置*/

@@ -14,7 +14,7 @@
 #include "err.h"
 #include "piPlayer.h"
 
-#define PAGE_SONGNUM(size) ((size < 30)?(size-3):(18))
+#define PAGE_SONGNUM(size) (size - 4)
 #define MENU_HEIGHT 2
 #define BORDER_WIDTH 4
 /*初始终端设置
@@ -55,7 +55,7 @@ int print_interface() {
 }
 
 struct winsize *get_terminal_size() {
-    struct winsize *size = calloc(sizeof(struct winsize),1);
+    struct winsize *size = (struct winsize *)calloc(sizeof(struct winsize), 1);
 
     if (ioctl(0, TIOCGWINSZ, size) < 0) {
         file_error("ioctl");
@@ -78,11 +78,11 @@ void print_in_width_termial() {
     print_in_narrow_termial();
 }
 void print_in_narrow_termial() {
-    if(menu != NULL){
+    if (menu != NULL) {
         delwin(menu);
         menu = NULL;
     }
-    if(list != NULL){
+    if (list != NULL) {
         delwin(list);
         list = NULL;
     }
@@ -100,30 +100,29 @@ void player_init_color() {
     init_pair(PAIR_OTHER, COLOR_BLACK, COLOR_WHITE);
 }
 
-void print_list(struct play_list_info *play_list){
+void print_list(struct play_list_info *play_list) {
     int cell_height = getmaxy(list) / PAGE_SONGNUM(size->ws_row);
     int width = getmaxx(list) - BORDER_WIDTH;
     //wmove(list,cell_height / 2, 2);
 
-    
     int i;
     if (play_list->current_choose < PAGE_SONGNUM(size->ws_row) / 2) {
         i = 0;
-    } else if (play_list->file_used_num - play_list->current_choose < PAGE_SONGNUM(size->ws_row)) {
-        i = play_list->file_used_num - PAGE_SONGNUM(size->ws_row) + 1;
+    } else if (play_list->music_num - play_list->current_choose < PAGE_SONGNUM(size->ws_row)) {
+        i = play_list->music_num - PAGE_SONGNUM(size->ws_row) + 1;
     } else {
         i = play_list->current_choose - PAGE_SONGNUM(size->ws_row) / 2;
     }
-    wattron(list,COLOR_PAIR(PAIR_OTHER));
+    wattron(list, COLOR_PAIR(PAIR_OTHER));
     int n = 0;
-    for (; n < PAGE_SONGNUM(size->ws_row) - 1 && i < play_list->file_used_num /*&&   */; i++) {
+    for (; n < PAGE_SONGNUM(size->ws_row) - 1 && i < play_list->music_num /*&&   */; i++) {
         if (i == play_list->current_choose) {
-            wattron(list,A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
-            mvwprintw(list,n * cell_height + cell_height / 2, 2, "%-*.*s", width, width, play_list->sorted_file[i]->name);
-            wattroff(list,A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
-            wattron(list,COLOR_PAIR(PAIR_OTHER));
+            wattron(list, A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
+            mvwprintw(list, n * cell_height + cell_height / 2, 2, "%-*.*s", width, width, play_list->file_list.sorted_file[i]->name);
+            wattroff(list, A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
+            wattron(list, COLOR_PAIR(PAIR_OTHER));
         } else {
-            mvwprintw(list, n * cell_height + cell_height / 2, 2, "%-*.*s", width, width, play_list->sorted_file[i]->name);
+            mvwprintw(list, n * cell_height + cell_height / 2, 2, "%-*.*s", width, width, play_list->file_list.sorted_file[i]->name);
         }
         n++;
         //wrefresh(list);
@@ -136,7 +135,7 @@ void print_menu(char *msg, ...) {
     va_list _va_list;
     va_start(_va_list, msg);        /* 初始化变长参数列表 */
     vsprintf(szBuf, msg, _va_list); /* 传递变长参数 */
-    va_end(_va_list);                   /* 结束使用变长参数列表 */
+    va_end(_va_list);               /* 结束使用变长参数列表 */
     wprintw(menu, "%s", szBuf);
     wrefresh(menu);
 }

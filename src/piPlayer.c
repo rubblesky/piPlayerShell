@@ -15,8 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/wait.h>
 #include <sys/select.h>
+#include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
 //#include <ncurses.h>
@@ -49,6 +49,13 @@ static struct termios old_tty_attr;
 struct play_list_info *get_play_list() {
     return &play_list;
 }
+struct file_list *get_file_list() {
+    return &(play_list.file_list);
+}
+/*初始化播放列表相关默认值*/
+void init_play_list();
+
+
 
 /*切换目录*/
 static int change_dirctory(char *dir);
@@ -79,12 +86,9 @@ void print_play_setting();
 static void player_stop(int signo);
 void exit_player(int stauts);
 
-/*打印目录*/
-static void print_dir();
-
-#define NEXT_SONG()                                               \
-    if (play_list.current_choose < play_list.file_used_num - 1) { \
-        play_list.current_choose++;                               \
+#define NEXT_SONG()                                           \
+    if (play_list.current_choose < play_list.music_num - 1) { \
+        play_list.current_choose++;                           \
     }
 #define LAST_SONG()                     \
     if (play_list.current_choose > 0) { \
@@ -99,11 +103,7 @@ static struct option long_opt[] =
 
 int main(int argc, char *argv[]) {
     /*初始化默认值*/
-    play_list.sort_rule = by_name;
-    play_list.music_dir = get_current_dir();
-    play_list.file_alloc_num = 100;
-    play_list.file_used_num = 0;
-    play_list.current_choose = 0;
+    init_play_list();
     ps = STOP;
     play_setting = SINGLE_PLAY;
     is_end = 1;
@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
                 use_star_dir = 1;
                 break;
             case 't':
-                play_list.sort_rule = by_last_modification_time;
+                play_list.file_list.sort_rule = by_last_modification_time;
                 break;
             default:
                 break;
@@ -137,6 +137,9 @@ int main(int argc, char *argv[]) {
     pthread_t tidp;
     if (read_dir(play_list.music_dir) < 0) {
         return -1;
+    }
+    else{
+        play_list.music_num = play_list.file_list.file_used_num;
     }
     print_interface();
     if (pthread_create(&tidp, NULL, get_cmd, NULL) < 0) {
@@ -150,6 +153,14 @@ int main(int argc, char *argv[]) {
     }
 }
 
+void init_play_list() {
+    struct file_list *file_list = &(play_list.file_list);
+    file_list->sort_rule = by_name;
+    play_list.music_dir = get_current_dir();
+    file_list->file_alloc_num = 100;
+    file_list->file_used_num = 0;
+    play_list.current_choose = 0;
+}
 static int change_dirctory(char *dir) {
     if (chdir(dir) < 0) {
         file_error("can't change directory");
@@ -184,57 +195,59 @@ static void *get_cmd(void *arg) {
         if ((is_stdin_in = wait_for_stdin()) < 0) {
             file_error("select");
             continue;
-        } else if ((!is_stdin_in /*&& is_end*/ && ps == STOP)||  is_stdin_in > 0) {
+        }
+        /*这里还有极小的概率出问题*/
+        else if ((!is_stdin_in /*&& is_end*/ && ps == STOP) || is_stdin_in > 0) {
             if ((c = fgetc(stdin)) != EOF) {
-                    switch (c) {
-                        case 'u':
-                            LAST_SONG();
-                            break;
-                        case 'd':
-                            NEXT_SONG();
-                            break;
-                        case 'p':
-                            if (play_setting == RANDOM_PLAY) {
-                                play_setting = 0;
-                            } else {
-                                play_setting++;
-                            }
-                            print_play_setting();
-                            break;
-                        case '\033':
-                            deal_arrow_key(fpipe);
-                            break;
-                        case '\n':
-                        case 'b':
-                            fpipe = play();
-                            break;
+                switch (c) {
+                    case 'u':
+                        LAST_SONG();
+                        break;
+                    case 'd':
+                        NEXT_SONG();
+                        break;
+                    case 'p':
+                        if (play_setting == RANDOM_PLAY) {
+                            play_setting = 0;
+                        } else {
+                            play_setting++;
+                        }
+                        print_play_setting();
+                        break;
+                    case '\033':
+                        deal_arrow_key(fpipe);
+                        break;
+                    case '\n':
+                    case 'b':
+                        fpipe = play();
+                        break;
 
-                        case '-':
-                            send_cmd("/", fpipe);
-                            print_menu("volume -");
-                            break;
-                        case '+':
-                            send_cmd("*", fpipe);
-                            print_menu("volume +");
-                            break;
-                        case ' ':
-                            send_cmd(" ", fpipe);
-                            if (ps != STOP) {
-                                ps = (ps == PAUSE) ? PLAYING : PAUSE;
-                            }
-                            if (ps == PAUSE) {
-                                print_menu("pause");
-                            } else {
-                                print_menu("");
-                            }
-                            break;
-                        case 'q':
-                            print_menu("Exit...\n");
-                            exit_player(0);
+                    case '-':
+                        send_cmd("/", fpipe);
+                        print_menu("volume -");
+                        break;
+                    case '+':
+                        send_cmd("*", fpipe);
+                        print_menu("volume +");
+                        break;
+                    case ' ':
+                        send_cmd(" ", fpipe);
+                        if (ps != STOP) {
+                            ps = (ps == PAUSE) ? PLAYING : PAUSE;
+                        }
+                        if (ps == PAUSE) {
+                            print_menu("pause");
+                        } else {
+                            print_menu("");
+                        }
+                        break;
+                    case 'q':
+                        print_menu("Exit...\n");
+                        exit_player(0);
 
-                        default:
-                            break;
-                    }
+                    default:
+                        break;
+                }
             }
         }
     }
@@ -273,7 +286,6 @@ static void deal_arrow_key(FILE *fpipe) {
 }
 
 static FILE *play() {
-    
     play_list.current_playing = play_list.current_choose;
     static pid_t last_song = 0;
     static pthread_t tidp;
@@ -292,7 +304,6 @@ static FILE *play() {
         }
         return fpipe;
     }
-
 }
 
 void get_player_status(int *last_song) {
@@ -304,7 +315,7 @@ void get_player_status(int *last_song) {
         switch (play_setting) {
             case RANDOM_PLAY:
                 srand(time(NULL));
-                play_list.current_choose = rand() % play_list.file_used_num;
+                play_list.current_choose = rand() % play_list.music_num;
                 print_list(&play_list);
                 ungetc('b', stdin);
                 break;
@@ -388,7 +399,7 @@ static void launch_player(int fd_pipe[]) {
         exit(-1);
     }
     close(fd_pipe[0]);
-    if (execlp("mplayer", "mplayer", play_list.sorted_file[play_list.current_choose]->name, NULL) < 0) {
+    if (execlp("mplayer", "mplayer", play_list.file_list.sorted_file[play_list.current_choose]->name, NULL) < 0) {
         player_error(ferr, "mplayer");
         exit(-1);
     }
@@ -433,11 +444,7 @@ void print_play_setting() {
     }
 }
 
-static void print_dir() {
-    for (int i = 0; i < play_list.file_used_num; i++) {
-        printf("%s\n", play_list.file->name);
-    }
-}
+
 
 void exit_player(int stauts) {
     /*向所有子进程发送终止信号*/
