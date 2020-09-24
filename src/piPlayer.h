@@ -89,6 +89,11 @@ struct play_list_file{
     struct play_list_file *next_file;
 };
 
+
+struct player_status{
+
+};
+
 /*播放列表信息*/
 struct play_list_info {
     /*音乐文件夹名*/

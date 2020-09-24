@@ -1,69 +1,95 @@
+#include "cmd.h"
 
-#include "piPlayer.h"
-
-#include <assert.h>
-#include <dirent.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <locale.h>
 #include <ncursesw/ncurses.h>
 #include <pthread.h>
 #include <signal.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <sys/select.h>
-#include <sys/wait.h>
-#include <termios.h>
 #include <unistd.h>
-//#include <ncurses.h>
+#include <time.h>
 
-#include "dir.h"
 #include "err.h"
 #include "interface.h"
-#include "sort.h"
-#include "terminal.h"
-//extern char **environ;
+#include "queue.h"
 
-/*播放列表*/
-struct play_list_info play_list;
-enum play_setting play_setting;
-/*歌曲结束*/
-bool is_end;
-/*播放器状态*/
-enum player_status ps;
-/*使用收藏目录*/
-bool use_star_dir = 0;
-/*显示非音乐文件*/
-bool show_all_files = 0;
-/*初始终端设置
-  作为程序结束时恢复终端属性的依据
-*/
-/*父进程向子进程发送信息的管道*/
-FILE *fpipe = NULL;
+#define NEXT_SONG()                                           \
+    if (play_list.current_choose < play_list.music_num - 1) { \
+        play_list.current_choose++;                           \
+    }
+#define LAST_SONG()                     \
+    if (play_list.current_choose > 0) { \
+        play_list.current_choose--;     \
+    }
+
+void *get_cmd(void *queue);
+
+void *deal_cmd(void *queue);
 
 
-struct play_list_info *get_play_list() {
-    return &play_list;
+
+void *control(void *arg){
+    pthread_t get_cmd_tidp,deal_cmd_tidp;
+    Queue *q = init_queue(5);
+    pthread_create(&get_cmd_tidp, NULL, get_cmd, (void*)q);
+    pthread_create(&deal_cmd_tidp, NULL, deal_cmd, (void*)q);
 }
-struct file_list *get_file_list() {
-    return &(play_list.file_list);
+
+void *get_cmd(void *queue) {
+    Queue *q = queue;
+    int c;
+    while ((c = getch()) != ERR) {
+        if (queue_insert(q, c) != 0) {
+            print_menu("操作过于频繁 请稍后再试");
+        }
+    }
 }
-/*初始化播放列表相关默认值*/
-void init_play_list();
+
+void *deal_cmd(void *queue) {
+    int cmd;
+    while (1){
+        if(queue_get_head( (Queue*)queue,&cmd) == 0){
+            switch (cmd)
+            {
+            case 'q':
+                exit_player(0);
+                break;
+            case 'p':
+                if (play_setting == RANDOM_PLAY) {
+                    play_setting = 0;
+                } else {
+                    play_setting++;
+                }
+            default:
+                break;
+            }
+        }
+    }
+}
 
 
 
-/*切换目录*/
-static int change_dirctory(char *dir);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*等待键盘命令*/
 int wait_for_stdin();
 
 /*读取键盘命令*/
-static void *get_cmd(void *arg);
+void *get_cmd(void *arg);
 /*处理方向键*/
 static void deal_arrow_key(FILE *fpipe);
 
@@ -84,109 +110,8 @@ char *get_current_dir();
 void print_play_setting();
 /*播放器收到歌曲结束信号时执行的命令*/
 static void player_stop(int signo);
-void exit_player(int stauts);
 
-#define NEXT_SONG()                                           \
-    if (play_list.current_choose < play_list.music_num - 1) { \
-        play_list.current_choose++;                           \
-    }
-#define LAST_SONG()                     \
-    if (play_list.current_choose > 0) { \
-        play_list.current_choose--;     \
-    }
 
-static char short_opts[] = "astd:";
-static struct option long_opt[] =
-    {
-        {"directory", required_argument, NULL, 'd'},
-        {0, 0, 0, 0}};
-
-int main(int argc, char *argv[]) {
-    /*初始化默认值*/
-    init_play_list();
-    ps = STOP;
-    play_setting = SINGLE_PLAY;
-    is_end = 1;
-    /*读取参数*/
-    int opt;
-    while ((opt = getopt_long(argc, argv, short_opts, long_opt, NULL)) != -1) {
-        switch (opt) {
-            case 0:
-                break;
-            case 'a':
-                show_all_files = true;
-                break;
-            case 'd':
-                if (change_dirctory(optarg) < 0) {
-                    exit_player(-1);
-                }
-                break;
-            case 's':
-                use_star_dir = 1;
-                break;
-            case 't':
-                play_list.file_list.sort_rule = by_last_modification_time;
-                break;
-            default:
-                break;
-        }
-    }
-    /*收到SIGINT信号时执行默认退出程序*/
-    signal(SIGINT, exit_player); /*这里还要追加补充其他信号*/
-    signal(SIGWINCH, print_by_size);
-    pthread_t tidp;
-    if (read_dir(play_list.music_dir) < 0) {
-        return -1;
-    }
-    else{
-        play_list.music_num = play_list.file_list.file_used_num;
-    }
-    print_interface();
-    if (pthread_create(&tidp, NULL, get_cmd, NULL) < 0) {
-#ifndef NDEBUG
-        printf("can't create control pthread\n");
-#endif
-        return -1;
-    }
-    while (1) {
-        sleep(10);
-    }
-}
-
-void init_play_list() {
-    struct file_list *file_list = &(play_list.file_list);
-    file_list->sort_rule = by_name;
-    play_list.music_dir = get_current_dir();
-    file_list->file_alloc_num = 100;
-    file_list->file_used_num = 0;
-    play_list.current_choose = 0;
-}
-static int change_dirctory(char *dir) {
-    if (chdir(dir) < 0) {
-        file_error("can't change directory");
-        return -1;
-    }
-    if (play_list.music_dir != NULL) {
-        free(play_list.music_dir);
-    }
-    play_list.music_dir = get_current_dir();
-    if (play_list.music_dir != NULL) {
-        return 0;
-    } else {
-        return -1;
-    }
-}
-
-int wait_for_stdin() {
-    fd_set fdset;
-    FD_ZERO(&fdset);
-    FD_SET(fileno(stdin), &fdset);
-    struct timeval tm;
-    tm.tv_sec = 3;
-    tm.tv_usec = 0;
-    return select(1, &fdset, NULL, NULL, &tm);
-    //return select(1, &fdset, NULL, NULL, NULL);
-}
 
 static void *get_cmd(void *arg) {
     char c;
@@ -284,7 +209,6 @@ static void deal_arrow_key(FILE *fpipe) {
         }
     }
 }
-
 static FILE *play() {
     play_list.current_playing = play_list.current_choose;
     static pid_t last_song = 0;
@@ -404,53 +328,4 @@ static void launch_player(int fd_pipe[]) {
         exit(-1);
     }
     exit(0);
-}
-
-char *get_current_dir() {
-    char *dir = malloc(PATHMAX);
-    if (dir == NULL) {
-        alloc_error();
-        return NULL;
-    }
-    if (getcwd(dir, PATHMAX) == NULL) {
-        file_error("can't get pwd");
-        return NULL;
-    }
-    int size = strlen(dir);
-    dir[size++] = '/';
-    dir[size] = '\0';
-    return dir;
-}
-
-void print_play_setting() {
-    switch (play_setting) {
-        case SINGLE_PLAY:
-            print_menu("单曲播放");
-            break;
-        case SINGLE_TUNE_CIRCULATION:
-            print_menu("单曲循环");
-            break;
-        case LOOP_PLAYBACK:
-            print_menu("循环播放");
-            break;
-        case ORDER_PLAYBACK:
-            print_menu("顺序播放");
-            break;
-        case RANDOM_PLAY:
-            print_menu("随机播放");
-            break;
-        default:
-            break;
-    }
-}
-
-
-
-void exit_player(int stauts) {
-    /*向所有子进程发送终止信号*/
-    kill(0, SIGINT);
-    
-    reset_tty_attr();
-    endwin();
-    exit(stauts);
 }

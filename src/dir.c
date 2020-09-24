@@ -51,7 +51,7 @@ void free_hash_tbale(struct hash_table *hash_table);
 static bool is_music(char *filename, struct hash_table *hash_table);
 
 int read_dir(char *directory_name) {
-    if (get_file_info(directory_name) < 0) {
+    if (get_file_info(directory_name) == NULL) {
         return -1;
     }
     sort_file();

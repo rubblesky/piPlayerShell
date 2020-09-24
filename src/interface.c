@@ -44,11 +44,10 @@ void print_menu(char *msg, ...);
 /*设置终端属性*/
 static void set_tty_attr();
 void reset_tty_attr();
-int print_interface() {
-    set_tty_attr();
+int print_interface() {   
     setlocale(LC_ALL, "");
     initscr();
-    //cbreak();
+    set_tty_attr();
 
     print_by_size();
     refresh();
@@ -149,11 +148,16 @@ static void set_tty_attr() {
         exit_player(-1);
     }
     new_tty_attr = old_tty_attr;
-    /*修改模式为非规范模式*/
+    /*
+    修改模式为非规范模式
     new_tty_attr.c_lflag &= ~ICANON;
     new_tty_attr.c_lflag &= ~ECHO;
     new_tty_attr.c_cc[VTIME] = 0;
     new_tty_attr.c_cc[VMIN] = 0;
+    */
+    noecho();
+    cbreak();
+    keypad(stdscr,true);
     if (tcsetattr(fileno(stdin), TCSADRAIN, &new_tty_attr) < 0) {
 #ifndef NDEBUG
         printf("can't set tty attribute\n");

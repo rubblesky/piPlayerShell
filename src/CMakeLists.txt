@@ -1,4 +1,4 @@
-SET(SRC_LIST "piPlayer.c" "dir.c" "err.c" "interface.c" )
+SET(SRC_LIST "piPlayer.c" "dir.c" "err.c" "interface.c" "cmd.c" )
 SET(LIB_LIST "sort" "terminal")
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
