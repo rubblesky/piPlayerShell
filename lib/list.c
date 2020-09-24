@@ -1,7 +1,7 @@
 #include "list.h"
 #include <stdlib.h>
 
-List * init_lsit(){
+List * init_list(){
     List * ls = malloc(sizeof(List));
     if(ls != NULL){
         struct list_node *ln = malloc(sizeof(struct list_node));
@@ -52,6 +52,9 @@ int list_append(List *ls,void *element){
 
 /*在ln位置之前增加节点*/
 int list_insert(List *ls,struct list_node *ln,void *element){
+    if(ln == ls->head){
+        return ERROR_POSITION;
+    }
     struct list_node *new_node = malloc(sizeof(struct list_node));
     if (new_node == NULL) {
         return ERROR_ALLOC;
@@ -110,7 +113,7 @@ int list_move_to(List *ls,struct list_node* ln1,struct list_node* ln2){
     }
     else{
         ln1->prev->next = NULL;
-        ls->tail = ln.prev;
+        ls->tail = ln1->prev;
     }
     if(ln2->next != NULL){
         ln1->next = ln2->next;

@@ -28,8 +28,7 @@ struct hash_table {
 };
 
 /*获取目录下文件信息*/
-static struct file_info *
-get_file_info(char *directory_name);
+int get_file_info(char *directory_name,struct file_list *file_list);
 /*向文件列表中添加读取到的文件*/
 static int add_file(char *file_name,struct file_list* file_list);
 /*文件排序*/
@@ -51,23 +50,24 @@ void free_hash_tbale(struct hash_table *hash_table);
 static bool is_music(char *filename, struct hash_table *hash_table);
 
 int read_dir(char *directory_name) {
-    if (get_file_info(directory_name) == NULL) {
+    struct file_list *file_list = get_file_list();
+    if (get_file_info(directory_name,file_list) < 0) {
         return -1;
     }
     sort_file();
 }
 
-static struct file_info *get_file_info(char *directory_name) {
+int get_file_info(char *directory_name, struct file_list *file_list) {
     DIR *dir = opendir(directory_name);
     struct dirent *next_file;
-    struct file_list *file_list = get_file_list();
+    
     /*第一次调用要给file开空间*/
     static bool first = true;
 
     errno = 0;
     if (NULL == dir) {
         file_error("open dir fail");
-        return NULL;
+        return -1;
     }
     if (first) {
         file_list->file = malloc(file_list->file_alloc_num * sizeof(*(file_list->file)));
@@ -90,7 +90,7 @@ static struct file_info *get_file_info(char *directory_name) {
             }
         } else if (errno != 0) {
             file_error("read dir fail");
-            return NULL;
+            return -1;
         } else {
             break;
         }
@@ -99,11 +99,11 @@ static struct file_info *get_file_info(char *directory_name) {
         free_hash_tbale(hash_table);
     }
     closedir(dir);
+    return 0;
 }
 
 static int add_file(char *file_name, struct file_list* file_list) {
-    /*这里要改 开销太大*/
-    struct play_list_info *play_list = get_play_list();
+
     if (strcmp(file_name, ".") == 0) {
         return 0;
     }

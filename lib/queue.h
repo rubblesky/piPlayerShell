@@ -1,4 +1,4 @@
-#define _GNU_SOURCE.
+#define _GNU_SOURCE
 #include <pthread.h>
 struct queue {
     int *array;

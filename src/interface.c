@@ -39,7 +39,7 @@ void print_by_size();
 void print_in_width_termial();
 void print_in_narrow_termial();
 void player_init_color();
-void print_list(struct play_list_info *play_list);
+void print_list(struct play_list *play_list);
 void print_menu(char *msg, ...);
 /*设置终端属性*/
 static void set_tty_attr();
@@ -90,7 +90,7 @@ void print_in_narrow_termial() {
     player_init_color();
     touchwin(stdscr);
     refresh();
-    struct play_list_info *play_list = get_play_list();
+    struct play_list *play_list = get_play_list();
     print_list(play_list);
 }
 void player_init_color() {
@@ -99,34 +99,32 @@ void player_init_color() {
     init_pair(PAIR_OTHER, COLOR_BLACK, COLOR_WHITE);
 }
 
-void print_list(struct play_list_info *play_list) {
+void print_list(struct play_list *play_list) {
     int cell_height = getmaxy(list) / PAGE_SONGNUM(size->ws_row);
     int width = getmaxx(list) - BORDER_WIDTH;
     //wmove(list,cell_height / 2, 2);
 
-    int i;
-    if (play_list->current_choose < PAGE_SONGNUM(size->ws_row) / 2) {
-        i = 0;
-    } else if (play_list->music_num - play_list->current_choose < PAGE_SONGNUM(size->ws_row)) {
-        i = play_list->music_num - PAGE_SONGNUM(size->ws_row) + 1;
-    } else {
-        i = play_list->current_choose - PAGE_SONGNUM(size->ws_row) / 2;
+    music_t tmp = play_list->current_choose;
+    for (int i = 0; i < PAGE_SONGNUM(size->ws_row) / 2 && tmp != NULL; i++) {
+        tmp = list_get_prev(play_list->play_list_file  , tmp);
+    }
+    if(tmp == NULL){
+        tmp = list_get_first(play_list->play_list_file);
     }
     wattron(list, COLOR_PAIR(PAIR_OTHER));
-    int n = 0;
-    for (; n < PAGE_SONGNUM(size->ws_row) - 1 && i < play_list->music_num /*&&   */; i++) {
-        if (i == play_list->current_choose) {
+    for (int i = 0; i < PAGE_SONGNUM(size->ws_row) && tmp != NULL ;i++){
+        if(tmp == play_list->current_choose){
             wattron(list, A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
-            mvwprintw(list, n * cell_height + cell_height / 2, 2, "%-*.*s", width, width, play_list->file_list.sorted_file[i]->name);
+            mvwprintw(list, i * cell_height + cell_height / 2, 2, "%-*.*s", width, width, ((struct file_info*)(tmp->element))->name);
             wattroff(list, A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
             wattron(list, COLOR_PAIR(PAIR_OTHER));
-        } else {
-            mvwprintw(list, n * cell_height + cell_height / 2, 2, "%-*.*s", width, width, play_list->file_list.sorted_file[i]->name);
         }
-        n++;
-        //wrefresh(list);
+        else{
+            mvwprintw(list, i * cell_height + cell_height / 2, 2, "%-*.*s", width, width, ((struct file_info *)(tmp->element))->name);
+        }
+        tmp = list_get_next(play_list->play_list_file, tmp);
     }
-    wrefresh(list);
+        wrefresh(list);
 }
 void print_menu(char *msg, ...) {
     wclear(menu);

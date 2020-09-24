@@ -7,7 +7,7 @@
 #include <time.h>
 
 #include "config.h"
-
+#include "list.h"
 #define PATHMAX 1024
 /*路径分隔符*/
 #define PATH_SEPARATOR '/'
@@ -23,7 +23,8 @@ void exit_player(int stauts);
 extern bool use_star_dir;
 /*显示非音乐文件*/
 extern bool show_all_files;
-typedef long int music_t;
+//typedef long int music_t;
+typedef struct list_node* music_t;
 
 enum terminal_attr {
     WIDTH,
@@ -32,15 +33,16 @@ enum terminal_attr {
 
 enum player_status {
     PLAYING,
-    PAUSE
+    PAUSE,
+    STOP
 };
 
 enum play_setting {
     SINGLE_PLAY,            /*单曲播放*/
     SINGLE_TUNE_CIRCULATION, /*单曲循环*/
     LOOP_PLAYBACK,           /*循环播放*/
-    ORDER_PLAYBACK,          /*顺序播放*/
-    RANDOM_PLAY              /*随机播放*/
+    ORDER_PLAYBACK          /*顺序播放*/
+    //RANDOM_PLAY              /*随机播放*/
 
 };
 
@@ -79,11 +81,11 @@ struct file_list{
     /*排序之后的文件数组*/
     struct file_info **sorted_file;
     /*文件名数组的分配大小*/
-    music_t file_alloc_num;
+    long int file_alloc_num;
     /*文件名数组有效数据大小
     相应下标应该-1
     */
-    music_t file_used_num;
+    long int file_used_num;
 };
 
 
@@ -100,13 +102,14 @@ struct play_list{
     列表中音乐数量
     music_t music_num;
 
-    当前选择的音乐
-    music_t current_choose;
-    当前播放的音乐
-    music_t current_playing;
     */
 
-    
+    /*播放列表*/
+    List *play_list_file;
+    /*当前选择的音乐*/
+    music_t current_choose;
+    /*当前播放的音乐*/
+    music_t current_playing;
     /*播放方式*/
     enum play_setting play_setting;
     /*播放器状态*/

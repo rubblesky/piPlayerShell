@@ -1,5 +1,5 @@
 #define ERROR_ALLOC -1
-
+#define ERROR_POSITION -2
 
 
 struct list_node {
@@ -14,7 +14,7 @@ struct link_list {
 };
 typedef struct link_list List;
 
-List* init_lsit();
+List* init_list();
 void free_list(List* ls);
 /*在尾部增加节点*/
 int list_append(List* ls, void* element);
