@@ -30,8 +30,14 @@ void *deal_cmd(void *queue);
 void *control(void *arg){
     pthread_t get_cmd_tidp,deal_cmd_tidp;
     Queue *q = init_queue(5);
-    pthread_create(&get_cmd_tidp, NULL, get_cmd, (void*)q);
-    pthread_create(&deal_cmd_tidp, NULL, deal_cmd, (void*)q);
+    if(q!=NULL){
+        pthread_create(&get_cmd_tidp, NULL, get_cmd, (void*)q);
+        pthread_create(&deal_cmd_tidp, NULL, deal_cmd, (void*)q);
+    }
+    else{
+        alloc_error();
+        exit_player(-1);
+    }
 }
 
 void *get_cmd(void *queue) {
@@ -45,6 +51,11 @@ void *get_cmd(void *queue) {
 }
 
 void *deal_cmd(void *queue) {
+    struct play_list *play_list = get_play_list();
+    struct timespec ts;
+    ts.tv_sec = 0;
+    /*十毫秒*/
+    ts.tv_nsec = 10000000;
     int cmd;
     while (1){
         if(queue_get_head( (Queue*)queue,&cmd) == 0){
@@ -54,14 +65,23 @@ void *deal_cmd(void *queue) {
                 exit_player(0);
                 break;
             case 'p':
-                if (play_setting == RANDOM_PLAY) {
-                    play_setting = 0;
+                if (play_list->play_setting == RANDOM_PLAY) {
+                    play_list->play_setting = 0;
                 } else {
-                    play_setting++;
+                    play_list->play_setting++;
                 }
+            case KEY_DOWN:
+                
+            case KEY_UP:
+
+            case 'b':
+
             default:
                 break;
             }
+        }
+        if(nanosleep(&ts, &ts) == -1){
+            ts.tv_nsec = 10000000;
         }
     }
 }

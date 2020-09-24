@@ -1,4 +1,4 @@
-
+#terminal
 add_library(terminal SHARED)
 target_sources(
 terminal
@@ -14,11 +14,12 @@ set_target_properties(terminal
 )
 target_include_directories(terminal PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
+#ncursesw
 find_package(Curses REQUIRED)
 include_directories( ${NCURSES_INCLUDE_DIRS} )
 target_link_libraries(terminal PRIVATE ${NCURSES_LIBRARIES})
 
-
+#sort
 add_library(sort SHARED)
 target_sources(sort
     PRIVATE 
@@ -44,7 +45,7 @@ target_link_libraries(piPlayer PRIVATE Threads::Threads)
 
 
 
-
+#queue
 add_library(queue SHARED)
 target_sources(queue
     PRIVATE 
@@ -58,3 +59,19 @@ set_target_properties(queue
             ${CMAKE_CURRENT_SOURCE_DIR}/queue.h    
 )        
 target_include_directories(queue PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+
+
+#link list
+add_library(list SHARED)
+target_sources(list
+    PRIVATE 
+        list.c
+    PUBLIC
+        list.h
+)
+set_target_properties(list
+    PROPERTIES
+        PUBLIC_HEADER
+            ${CMAKE_CURRENT_SOURCE_DIR}/list.h    
+)        
+target_include_directories(list PUBLIC ${CMAKE_CURRENT_LIST_DIR})

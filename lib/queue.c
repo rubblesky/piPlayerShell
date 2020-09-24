@@ -9,6 +9,9 @@ Queue* init_queue(int size) {
     }
 
     Queue* q = malloc(sizeof(Queue));
+    if(q == NULL){
+        return NULL;
+    }
     pthread_rwlock_init(&(q->q_lock), NULL);
     q->array = malloc(sizeof(int) * size);
     q->alloc_size = size;

@@ -120,12 +120,11 @@ static int add_file(char *file_name, struct file_list* file_list) {
 
     }
 
-    assert(strlen(play_list.music_dir) + strlen(file_name) + 1 <= PATHMAX);
+    assert(strlen(file_list.music_dir) + strlen(file_name) + 1 <= PATHMAX);
     char *file_path = malloc(PATHMAX * sizeof(char *));
-    int dir_size = strlen(play_list->music_dir);
-    /*这里还用到了play——list*/
+    int dir_size = strlen(file_list->music_dir);
     int name_size = strlen(file_name);
-    memcpy(file_path, play_list->music_dir, dir_size);
+    memcpy(file_path, file_list->music_dir, dir_size);
     memcpy(file_path + dir_size, file_name, name_size + 1);
 
     struct file_info *f = &(file_list->file[file_list->file_used_num]);

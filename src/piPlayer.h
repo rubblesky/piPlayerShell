@@ -12,9 +12,11 @@
 /*路径分隔符*/
 #define PATH_SEPARATOR '/'
 
-struct play_list_info *get_play_list();
+struct play_list_info *get_player();
 /*获取playlist.file_list*/
 struct file_list *get_file_list();
+/*获取playlist.play_list*/
+struct play_list *get_play_list();
 void exit_player(int stauts);
 
 /*使用收藏目录*/
@@ -30,7 +32,6 @@ enum terminal_attr {
 
 enum player_status {
     PLAYING,
-    STOP,
     PAUSE
 };
 
@@ -69,6 +70,8 @@ enum sort_rule {
 };
 
 struct file_list{
+    /*音乐文件夹名*/
+    char *music_dir;
     /*文件数组*/
     struct file_info *file;
     /*排序方式*/
@@ -90,27 +93,34 @@ struct play_list_file{
 };
 
 
-struct player_status{
+struct play_list{
+    /*
+    播放列表
+    struct play_list_file *play_list_file;
+    列表中音乐数量
+    music_t music_num;
 
+    当前选择的音乐
+    music_t current_choose;
+    当前播放的音乐
+    music_t current_playing;
+    */
+
+    
+    /*播放方式*/
+    enum play_setting play_setting;
+    /*播放器状态*/
+    enum player_status player_status;
 };
 
 /*播放列表信息*/
-struct play_list_info {
-    /*音乐文件夹名*/
-    char *music_dir;
+struct play_info {
+
     /*文件列表*/
     struct file_list file_list;
 
     /*播放列表*/
-    struct play_list_file *play_list_file;
-    /*列表中音乐数量*/
-    music_t music_num;
-
-    /*当前选择的音乐*/
-    music_t current_choose;
-    /*当前播放的音乐*/
-    music_t current_playing;
-
+    struct play_list play_list;
 };
 
 //extern struct play_list_info play_list;

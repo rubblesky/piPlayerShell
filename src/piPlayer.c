@@ -29,12 +29,10 @@
 //extern char **environ;
 
 /*播放列表*/
-struct play_list_info play_list;
-enum play_setting play_setting;
+struct play_info player;
 /*歌曲结束*/
 bool is_end;
-/*播放器状态*/
-enum player_status ps;
+
 /*使用收藏目录*/
 bool use_star_dir = 0;
 /*显示非音乐文件*/
@@ -45,17 +43,19 @@ bool show_all_files = 0;
 /*父进程向子进程发送信息的管道*/
 FILE *fpipe = NULL;
 
-
-struct play_list_info *get_play_list() {
-    return &play_list;
+struct play_list_info *get_player() {
+    return &player;
 }
 struct file_list *get_file_list() {
-    return &(play_list.file_list);
+    return &(player.file_list);
 }
+
+struct play_list *get_play_list() {
+    return &(player.play_list);
+}
+void init_player();
 /*初始化播放列表相关默认值*/
 void init_play_list();
-
-
 
 /*切换目录*/
 static int change_dirctory(char *dir);
@@ -103,9 +103,7 @@ static struct option long_opt[] =
 
 int main(int argc, char *argv[]) {
     /*初始化默认值*/
-    init_play_list();
-    ps = STOP;
-    play_setting = SINGLE_PLAY;
+    init_player();
     is_end = 1;
     /*读取参数*/
     int opt;
@@ -125,7 +123,7 @@ int main(int argc, char *argv[]) {
                 use_star_dir = 1;
                 break;
             case 't':
-                play_list.file_list.sort_rule = by_last_modification_time;
+                player.file_list.sort_rule = by_last_modification_time;
                 break;
             default:
                 break;
@@ -135,11 +133,10 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, exit_player); /*这里还要追加补充其他信号*/
     signal(SIGWINCH, print_by_size);
     pthread_t tidp;
-    if (read_dir(play_list.music_dir) < 0) {
+    if (read_dir(player.file_list.music_dir) < 0) {
         return -1;
-    }
-    else{
-        play_list.music_num = play_list.file_list.file_used_num;
+    } else {
+        init_play_list();
     }
     print_interface();
     if (pthread_create(&tidp, NULL, get_cmd, NULL) < 0) {
@@ -153,28 +150,40 @@ int main(int argc, char *argv[]) {
     }
 }
 
-void init_play_list() {
-    struct file_list *file_list = &(play_list.file_list);
+void init_player() {
+    struct file_list *file_list = &(player.file_list);
+    struct play_list *play_list = &(player.play_list);
+    player.file_list.music_dir = get_current_dir();
+
     file_list->sort_rule = by_name;
-    play_list.music_dir = get_current_dir();
     file_list->file_alloc_num = 100;
     file_list->file_used_num = 0;
-    play_list.current_choose = 0;
+
+    play_list->current_choose = 0;
+    play_list->play_setting = SINGLE_PLAY;
+    play_list->player_status = PAUSE;
 }
 static int change_dirctory(char *dir) {
     if (chdir(dir) < 0) {
         file_error("can't change directory");
         return -1;
     }
-    if (play_list.music_dir != NULL) {
-        free(play_list.music_dir);
+    if (player.file_list.music_dir != NULL) {
+        free(player.file_list.music_dir);
     }
-    play_list.music_dir = get_current_dir();
-    if (play_list.music_dir != NULL) {
+    player.file_list.music_dir = get_current_dir();
+    if (player.file_list.music_dir != NULL) {
         return 0;
     } else {
         return -1;
     }
+}
+
+void init_play_list() {
+    struct file_list *fl = get_file_list();
+    struct play_list *pl = get_play_list();
+    pl->music_num = fl->file_used_num;
+    
 }
 
 int wait_for_stdin() {
@@ -444,12 +453,10 @@ void print_play_setting() {
     }
 }
 
-
-
 void exit_player(int stauts) {
     /*向所有子进程发送终止信号*/
     kill(0, SIGINT);
-    
+
     reset_tty_attr();
     endwin();
     exit(stauts);
