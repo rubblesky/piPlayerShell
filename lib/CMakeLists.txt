@@ -46,7 +46,7 @@ target_link_libraries(piPlayer PRIVATE Threads::Threads)
 
 
 #queue
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu99")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -Wno-declaration-after-statement")
 add_library(queue SHARED)
 target_sources(queue
     PRIVATE 
@@ -59,6 +59,7 @@ set_target_properties(queue
         PUBLIC_HEADER
             ${CMAKE_CURRENT_SOURCE_DIR}/queue.h    
 )        
+target_compile_options(queue PRIVATE "-std=gnu99" "--warn-no-declaration-after-statement" )
 target_include_directories(queue PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
 
