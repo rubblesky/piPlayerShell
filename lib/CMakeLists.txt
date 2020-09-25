@@ -46,6 +46,7 @@ target_link_libraries(piPlayer PRIVATE Threads::Threads)
 
 
 #queue
+SET(CMAKE_C_FLAGS "-std=gnu99" CACHE STRING "" FORCE)
 add_library(queue SHARED)
 target_sources(queue
     PRIVATE 
