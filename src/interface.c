@@ -9,6 +9,7 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "dir.h"
 #include "err.h"
@@ -44,7 +45,10 @@ void print_menu(char *msg, ...);
 /*设置终端属性*/
 static void set_tty_attr();
 void reset_tty_attr();
-int print_interface() {   
+/*只适用于utf-8编码  目前只处理中文和日文*/
+int get_size_diff(unsigned char *str);
+
+int print_interface() {
     setlocale(LC_ALL, "");
     initscr();
     set_tty_attr();
@@ -103,28 +107,33 @@ void print_list(struct play_list *play_list) {
     int cell_height = getmaxy(list) / PAGE_SONGNUM(size->ws_row);
     int width = getmaxx(list) - BORDER_WIDTH;
     //wmove(list,cell_height / 2, 2);
-
+    wattron(list, COLOR_PAIR(PAIR_OTHER));
+    for (int y = 0; y < getmaxy(list); y++) {
+        mvwprintw(list, y * cell_height + cell_height / 2, 2, "%-*.*s", width, width, " ");
+    }
     music_t tmp = play_list->current_choose;
     for (int i = 0; i < PAGE_SONGNUM(size->ws_row) / 2 && tmp != NULL; i++) {
-        tmp = list_get_prev(play_list->play_list_file  , tmp);
+        tmp = list_get_prev(play_list->play_list_file, tmp);
     }
-    if(tmp == NULL){
+    if (tmp == NULL) {
         tmp = list_get_first(play_list->play_list_file);
     }
     wattron(list, COLOR_PAIR(PAIR_OTHER));
-    for (int i = 0; i < PAGE_SONGNUM(size->ws_row) && tmp != NULL ;i++){
-        if(tmp == play_list->current_choose){
+    for (int i = 0; i < PAGE_SONGNUM(size->ws_row) && tmp != NULL; i++) {
+        if (tmp == play_list->current_choose) {
+            if (((struct file_info *)(tmp->element))->name_size_diff == -1){
+                ((struct file_info *)(tmp->element))->name_size_diff = get_size_diff(((struct file_info *)(tmp->element))->name);
+            }
             wattron(list, A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
-            mvwprintw(list, i * cell_height + cell_height / 2, 2, "%-*.*s", width, width, ((struct file_info*)(tmp->element))->name);
+            mvwprintw(list, i * cell_height + cell_height / 2, 2, "%-*.*s", (int)(width + ((struct file_info *)(tmp->element))->name_size_diff), width, ((struct file_info *)(tmp->element))->name);
             wattroff(list, A_BOLD | COLOR_PAIR(PAIR_CHOOSE));
             wattron(list, COLOR_PAIR(PAIR_OTHER));
-        }
-        else{
+        } else {
             mvwprintw(list, i * cell_height + cell_height / 2, 2, "%-*.*s", width, width, ((struct file_info *)(tmp->element))->name);
         }
         tmp = list_get_next(play_list->play_list_file, tmp);
     }
-        wrefresh(list);
+    wrefresh(list);
 }
 void print_menu(char *msg, ...) {
     wclear(menu);
@@ -155,7 +164,7 @@ static void set_tty_attr() {
     */
     noecho();
     cbreak();
-    keypad(stdscr,true);
+    keypad(stdscr, true);
     if (tcsetattr(fileno(stdin), TCSADRAIN, &new_tty_attr) < 0) {
 #ifndef NDEBUG
         printf("can't set tty attribute\n");
@@ -167,4 +176,24 @@ static void set_tty_attr() {
 void reset_tty_attr() {
     /*恢复终端属性*/
     tcsetattr(fileno(stdin), TCSADRAIN, &old_tty_attr);
+}
+
+int get_size_diff(unsigned char *str){
+    int size = strlen(str);
+    int length = 0;
+    for (int i = 0; i < size;i++){
+        if (str[i] < 0x80 && str[i] < 0x80 > 0) {
+            length++;
+        } else if (str[i] >= 0x80 && str[i] < 0xE0) {
+            length++;/*这里姑且这么写  八成歌名里不会出现这些字符*/
+            i += 1;
+        } else if (str[i] >= 0xE0 && str[i] < 0xF0) {
+            length += 2; /*中日韩文字 包括假名 终端长度都为2*/
+            i += 2;
+        } else {
+            i += 3;
+            length += 2;
+        }
+    }
+    return size - length;
 }

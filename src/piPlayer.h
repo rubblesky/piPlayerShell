@@ -12,7 +12,7 @@
 /*路径分隔符*/
 #define PATH_SEPARATOR '/'
 
-struct play_list_info *get_player();
+struct play_info *get_player();
 /*获取playlist.file_list*/
 struct file_list *get_file_list();
 /*获取playlist.play_list*/
@@ -61,6 +61,7 @@ enum file_type {
 
 struct file_info {
     char *name;
+    int name_size_diff;  /*utf-8编码的字节大小和实际终端输出长度大小之差*/
     struct stat stat;
     enum file_type file_type;
     //time_t mtime;

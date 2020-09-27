@@ -43,7 +43,7 @@ bool show_all_files = 0;
 */
 
 
-struct play_list_info *get_player() {
+struct play_info *get_player() {
     return &player;
 }
 struct file_list *get_file_list() {

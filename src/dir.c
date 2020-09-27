@@ -132,7 +132,8 @@ static int add_file(char *file_name, struct file_list* file_list) {
     file_list->file_used_num++;
     f->name = malloc(sizeof(char) * (name_size + 2));
     memcpy(f->name, file_name, name_size + 1);
-
+    //此处一律初始化为-1 在interface.c中再具体赋值
+    f->name_size_diff = -1;
     if (stat(file_path, &(f->stat)) < 0) {
         file_error("stat fail");
         free(file_path);
