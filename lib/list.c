@@ -1,6 +1,6 @@
 #include "list.h"
 #include <stdlib.h>
-
+/*修改节点时务必不要忘记修改tail*/
 List * init_list(){
     List * ls = malloc(sizeof(List));
     if(ls != NULL){
@@ -106,7 +106,7 @@ struct list_node* list_get_prev(List *ls, struct list_node* ln){
 }
 
 /*把ln1移动到ln2后面*/
-int list_move_to(List *ls,struct list_node* ln1,struct list_node* ln2){
+void list_move_to(List *ls,struct list_node* ln1,struct list_node* ln2){
     if(ln1->next != NULL){
         ln1->prev->next = ln1->next;
         ln1->next->prev = ln1->prev;
@@ -129,7 +129,7 @@ int list_move_to(List *ls,struct list_node* ln1,struct list_node* ln2){
     }
 }
 
-int list_delete(List * ls,struct list_node *ln){
+void list_delete(List * ls,struct list_node *ln){
     if(ln->next != NULL){
         ln->prev->next = ln->next;
         ln->next->prev = ln->prev;
@@ -140,4 +140,66 @@ int list_delete(List * ls,struct list_node *ln){
     }
 
     free(ln);
+    
+}
+
+void list_swap(List *ls,struct list_node *ln1,struct list_node *ln2){
+
+    if(ln1->next == ln2){
+        ln1->next = ln2->next;
+        ln2->prev = ln1->prev;
+        if(ln2->next!=NULL){
+            ln1->prev->next = ln2;
+            ln2->next->prev = ln1;
+        }
+        else{
+            ln1->prev->next = ln2;
+            ls->tail = ln1;
+        }
+        ln1->prev = ln2;
+        ln2->next = ln1;
+        return;
+    } else if (ln2->next == ln1) {
+        ln2->next = ln1->next;
+        ln1->prev = ln2->prev;
+
+        if (ln1->next != NULL) {
+            ln2->prev->next = ln1;
+            ln1->next->prev = ln2;
+        } else {
+            ln2->prev->next = ln1;
+            ls->tail = ln2;
+        }
+
+        ln2->prev = ln1;
+        ln1->next = ln2;
+        return;
+    } else {
+        if(ln1->next != NULL){
+            ln1->next->prev = ln2;
+            ln1->prev->next = ln2;
+        }
+        else{
+            ln1->prev->next = ln2;
+            ls->tail = ln2;
+        }
+
+        if(ln2->next != NULL){
+            ln2->next->prev = ln1;
+            ln2->prev->next = ln1;
+        }
+        else{
+            ln2->prev->next = ln1;
+            ls->tail = ln1;
+        }
+    }
+    struct list_node *tmp;
+    tmp = ln1->next;
+    ln1->next = ln2->next;
+    ln2->next = tmp;
+
+    tmp = ln1->prev;
+    ln1->prev = ln2->prev;
+    ln2->prev = tmp;
+    return;
 }

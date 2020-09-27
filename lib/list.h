@@ -25,5 +25,6 @@ struct list_node* list_get_first(List* ls);
 struct list_node* list_get_end(List* ls);
 struct list_node* list_get_next(List* ls, struct list_node* ln);
 struct list_node* list_get_prev(List* ls, struct list_node* ln);
-int list_move_to(List* ls, struct list_node* ln1, struct list_node* ln2);
-int list_delete(List* ls, struct list_node* ln);
+void list_move_to(List* ls, struct list_node* ln1, struct list_node* ln2);
+void list_delete(List* ls, struct list_node* ln);
+void list_swap(List* ls, struct list_node* ln1, struct list_node* ln2);

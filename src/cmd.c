@@ -42,6 +42,8 @@ void *get_player_status(void *arg);
 /*向播放器发送命令*/
 void send_cmd(struct play_list *play_list,char *cmd, FILE *fpipe);
 
+void randomize_play_list();
+
 void *control(void *arg) {
     pthread_t get_cmd_tidp, deal_cmd_tidp;
     Queue *q = init_queue(5);
@@ -92,17 +94,28 @@ void *deal_cmd(void *queue) {
                 case KEY_UP:
                     choose_prev(play_list);
                     break;
+
+                case 'U':
+                case 'u':
+                    page_up(play_list);
+                    print_list(play_list);
+                    break;
+                case 'D':
+                case 'd':
+                    page_down(play_list);
+                    print_list(play_list);
+                    break;
                 case 'B':
                 case 'b':
                     fpipe = play(play_list, (Queue*)queue);
                     break;
                 case 'R':
                 case 'r':
-
-
-
+                    randomize_play_list();
+                    print_list(play_list);
+                    break;
                 case '-':
-                    send_cmd(play_list,"/", fpipe);
+                    send_cmd(play_list, "/", fpipe);
                     print_menu("volume -");
                     break;
                 case '+':
@@ -317,5 +330,20 @@ void send_cmd(struct play_list *play_list,char *cmd, FILE *fpipe) {
             file_error("send command fail\n");
         }
         fflush(fpipe);
+    }
+}
+
+void randomize_play_list(){
+    struct play_info *player = get_player();
+    music_t m = list_get_first(player->play_list.play_list_file);
+    music_t m1 = m;
+    for (int i = 0; i < player->file_list.file_used_num; i++) {     
+        music_t m2 = m1;
+        for (int j = 0; j < (rand() % (player->file_list.file_used_num - i)) ; j++) {
+            m2 = list_get_next(player->play_list.play_list_file, m2);
+        }
+        list_swap(player->play_list.play_list_file, m1, m2);
+        m1 = m2;
+        m1 = list_get_next(player->play_list.play_list_file, m1);
     }
 }

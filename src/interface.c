@@ -43,6 +43,10 @@ void print_in_narrow_termial();
 void player_init_color();
 void print_list(struct play_list *play_list);
 void print_menu(char *msg, ...);
+/*上下翻页*/
+void page_up(struct play_list *play_list);
+void page_down(struct play_list *play_list);
+
 /*设置终端属性*/
 static void set_tty_attr();
 void reset_tty_attr();
@@ -162,7 +166,27 @@ void print_menu(char *msg, ...) {
     wprintw(menu, "%s", szBuf);
     wrefresh(menu);
 }
-
+void page_up(struct play_list *play_list){
+    for (int i = 0; i < PAGE_SONGNUM(size->ws_row) ; i++){
+        music_t tmp = list_get_prev(play_list->play_list_file, play_list->current_choose);
+        if(tmp == NULL){
+            break;
+        }
+        else{
+            play_list->current_choose = tmp;
+        }
+    }
+}
+void page_down(struct play_list *play_list){
+    for (int i = 0; i < PAGE_SONGNUM(size->ws_row); i++) {
+        music_t tmp = list_get_next(play_list->play_list_file, play_list->current_choose);
+        if (tmp == NULL) {
+            break;
+        } else {
+            play_list->current_choose = tmp;
+        }
+    }
+}
 static void set_tty_attr() {
     struct termios new_tty_attr;
     if (tcgetattr(fileno(stdin), &old_tty_attr) < 0) {
