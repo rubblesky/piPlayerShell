@@ -113,6 +113,7 @@ void *deal_cmd(void *queue) {
                 case 'r':
                     randomize_play_list();
                     print_list(play_list);
+                    print_menu("随机排列");
                     break;
                 case '-':
                     send_cmd(play_list, "/", fpipe);
