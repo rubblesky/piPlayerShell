@@ -120,7 +120,7 @@ static int add_file(char *file_name, struct file_list* file_list) {
 
     }
 
-    assert(strlen(file_list.music_dir) + strlen(file_name) + 1 <= PATHMAX);
+
     char *file_path = malloc(PATHMAX * sizeof(char *));
     int dir_size = strlen(file_list->music_dir);
     int name_size = strlen(file_name);

@@ -1,3 +1,4 @@
+
 #include "interface.h"
 
 #include <fcntl.h>
@@ -64,11 +65,16 @@ struct winsize *get_terminal_size() {
         file_error("ioctl");
         exit_player(-1);
     }
+#ifndef NDEBUG
+    printf("win:(%d,%d) stdscr:(%d,%d)", size->ws_col, size->ws_row, LINES, COLS);
+#endif
     return size;
 }
 
 void print_by_size() {
+    refresh();
     size = get_terminal_size();
+    resizeterm(size->ws_row,size->ws_col);
     clear();
     if (size->ws_col * 2.3 > size->ws_row) {
         print_in_width_termial();
@@ -89,8 +95,14 @@ void print_in_narrow_termial() {
         delwin(list);
         list = NULL;
     }
+
     menu = subwin(stdscr, MENU_HEIGHT, size->ws_col, size->ws_row - MENU_HEIGHT, 0);
     list = subwin(stdscr, size->ws_row - MENU_HEIGHT, size->ws_col, 0, 0);
+#ifndef NDEBUG
+    if(list == NULL){
+        printf("list == NULL");
+    }
+#endif
     player_init_color();
     touchwin(stdscr);
     refresh();
@@ -104,7 +116,12 @@ void player_init_color() {
 }
 
 void print_list(struct play_list *play_list) {
-    int cell_height = getmaxy(list) / PAGE_SONGNUM(size->ws_row);
+    int cell_height;
+    if (PAGE_SONGNUM(size->ws_row) != 0){
+        cell_height = getmaxy(list) / PAGE_SONGNUM(size->ws_row);
+    }else{
+        cell_height = 0;
+    }
     int width = getmaxx(list) - BORDER_WIDTH;
     //wmove(list,cell_height / 2, 2);
     wattron(list, COLOR_PAIR(PAIR_OTHER));
